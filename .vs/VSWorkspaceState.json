@@ -1,0 +1,16 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\Controllers",
+    "\\Data",
+    "\\Edusync_frontend",
+    "\\Edusync_frontend\\src",
+    "\\Edusync_frontend\\src\\components",
+    "\\Edusync_frontend\\src\\services",
+    "\\Models",
+    "\\Services",
+    "\\Utils"
+  ],
+  "SelectedNode": "\\Controllers\\AssessmentsController.cs",
+  "PreviewInSolutionExplorer": false
+}
