@@ -6,6 +6,8 @@ import dataApi from '../services/dataApi';
 function AssessmentForm({ assessmentToEdit, courseId, onAssessmentSaved, onCancel }) {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [associatedCourseId, setAssociatedCourseId] = useState(courseId || ''); // Pre-fill with passed courseId
     const [error, setError] = useState(null);
 
@@ -13,11 +15,15 @@ function AssessmentForm({ assessmentToEdit, courseId, onAssessmentSaved, onCance
         if (assessmentToEdit) {
             setTitle(assessmentToEdit.title);
             setDescription(assessmentToEdit.description);
+            setStartDate(assessmentToEdit.startDate ? new Date(assessmentToEdit.startDate).toISOString().slice(0, 16) : '');
+            setEndDate(assessmentToEdit.endDate ? new Date(assessmentToEdit.endDate).toISOString().slice(0, 16) : '');
             setAssociatedCourseId(assessmentToEdit.courseId || ''); // Load existing courseId for editing
         } else {
             // For new assessment, ensure form is clean and courseId is set
             setTitle('');
             setDescription('');
+            setStartDate('');
+            setEndDate('');
             setAssociatedCourseId(courseId || '');
         }
     }, [assessmentToEdit, courseId]);
@@ -31,10 +37,17 @@ function AssessmentForm({ assessmentToEdit, courseId, onAssessmentSaved, onCance
             return;
         }
 
+        if (new Date(startDate) >= new Date(endDate)) {
+            setError("End date must be after start date.");
+            return;
+        }
+
         const assessmentData = {
             id: assessmentToEdit ? assessmentToEdit.id : 0, // ID is 0 for new, existing for updates
             title,
             description,
+            startDate: new Date(startDate).toISOString(),
+            endDate: new Date(endDate).toISOString(),
             courseId: parseInt(associatedCourseId) // Ensure CourseId is a number
         };
 
@@ -165,6 +178,26 @@ function AssessmentForm({ assessmentToEdit, courseId, onAssessmentSaved, onCance
                         rows="4"
                         style={textareaStyle}
                     ></textarea>
+                </label>
+                <label style={labelStyle}>
+                    Start Date and Time:
+                    <input
+                        type="datetime-local"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        required
+                        style={inputStyle}
+                    />
+                </label>
+                <label style={labelStyle}>
+                    End Date and Time:
+                    <input
+                        type="datetime-local"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        required
+                        style={inputStyle}
+                    />
                 </label>
                 {/* For simplicity, we are setting CourseId directly via props for creation.
                     For editing, it displays the existing CourseId.

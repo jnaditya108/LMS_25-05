@@ -21,12 +21,12 @@ function Register() {
         }
 
         try {
-            // Making the API call to your existing /api/users/register endpoint
-            const response = await API.post('/users/register', {
+            // Making the API call to the auth/register endpoint
+            const response = await API.post('/auth/register', {
                 username,
                 email,
-                password, // Sending plain text password as per your current backend (UsersController.cs)
-                role // Sending the selected role
+                password,
+                role
             });
 
             // Assuming your backend returns a message like { message: "Registration successful!" }

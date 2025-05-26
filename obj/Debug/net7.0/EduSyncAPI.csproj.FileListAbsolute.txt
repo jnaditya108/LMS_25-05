@@ -79,3 +79,4 @@ C:\Users\adity\EduSyncAPI\obj\Debug\net7.0\refint\EduSyncAPI.dll
 C:\Users\adity\EduSyncAPI\obj\Debug\net7.0\EduSyncAPI.pdb
 C:\Users\adity\EduSyncAPI\obj\Debug\net7.0\EduSyncAPI.genruntimeconfig.cache
 C:\Users\adity\EduSyncAPI\obj\Debug\net7.0\ref\EduSyncAPI.dll
+C:\Users\adity\EduSyncAPI\bin\Debug\net7.0\EduSyncAPI.staticwebassets.runtime.json

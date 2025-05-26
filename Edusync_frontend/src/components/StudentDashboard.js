@@ -1,149 +1,302 @@
 // src/components/StudentDashboard.js
 
-import React, { useState } from 'react'; // Import useState
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
-import { getAssessments, getCourses } from '../services/dataApi'; // Import the new data fetching functions
+import { getStudentAssessments, getEnrolledCourses, getCourses, enrollInCourse } from '../services/dataApi';
+import './StudentDashboard.css';
 
 function StudentDashboard() {
-    // State to hold fetched data
+    const navigate = useNavigate();
+    const [enrolledCourses, setEnrolledCourses] = useState([]);
+    const [availableCourses, setAvailableCourses] = useState([]);
     const [assessments, setAssessments] = useState([]);
-    const [courses, setCourses] = useState([]);
-    const [message, setMessage] = useState(''); // To display success/error messages
+    const [loading, setLoading] = useState(true);
+    const [message, setMessage] = useState('');
+    const [error, setError] = useState(null);
 
-    // Function to fetch assessments
-    const fetchAssessments = async () => {
-        setMessage('Fetching assessments...');
+    const username = localStorage.getItem('username');
+    const userId = localStorage.getItem('userId');
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                // Fetch enrolled courses for the student
+                const enrolledResponse = await getEnrolledCourses(userId);
+                setEnrolledCourses(enrolledResponse.data || []);
+
+                // Fetch all available courses
+                const allCoursesResponse = await getCourses();
+                const allCourses = allCoursesResponse.data || [];
+                
+                // Filter out enrolled courses from available courses
+                const enrolledIds = enrolledResponse.data.map(course => course.id);
+                const available = allCourses.filter(course => !enrolledIds.includes(course.id));
+                setAvailableCourses(available);
+
+                // Fetch assessments for the enrolled courses
+                const assessmentsResponse = await getStudentAssessments(userId);
+                setAssessments(assessmentsResponse.data || []);
+            } catch (err) {
+                console.error('Error fetching dashboard data:', err);
+                const errorMessage = err.response?.data?.message || 'Failed to load dashboard data. Please try again.';
+                setError(errorMessage);
+                if (err.response?.status === 401) {
+                    localStorage.clear();
+                    navigate('/login');
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [userId, navigate]);
+
+    const handleViewCourseClick = (courseId) => {
+        navigate(`/student/courses/${courseId}`);
+    };
+
+    const handleEnrollClick = async (courseId) => {
         try {
-            const response = await getAssessments(); // Call the dataApi function
-            setAssessments(response.data);
-            setMessage('Assessments fetched successfully!');
-        } catch (error) {
-            console.error('Failed to fetch assessments:', error);
-            setMessage('Failed to fetch assessments. Check console for details.');
-            setAssessments([]); // Clear assessments on error
+            await enrollInCourse({ userId, courseId });
+            // Refresh the courses lists
+            const enrolledResponse = await getEnrolledCourses(userId);
+            setEnrolledCourses(enrolledResponse.data || []);
+            setAvailableCourses(prev => prev.filter(course => course.id !== courseId));
+            setMessage('Successfully enrolled in the course!');
+        } catch (err) {
+            console.error('Error enrolling in course:', err);
+            const errorMessage = err.response?.data?.message || 'Failed to enroll in the course. Please try again.';
+            setError(errorMessage);
         }
     };
 
-    // Function to fetch courses
-    const fetchCourses = async () => {
-        setMessage('Fetching courses...');
-        try {
-            const response = await getCourses(); // Call the dataApi function
-            setCourses(response.data);
-            setMessage('Courses fetched successfully!');
-        } catch (error) {
-            console.error('Failed to fetch courses:', error);
-            setMessage('Failed to fetch courses. Check console for details.');
-            setCourses([]); // Clear courses on error
-        }
+    const handleViewAssessmentClick = (assessmentId) => {
+        navigate(`/student/assessments/${assessmentId}`);
     };
+
+    const formatDueDate = (dueDate) => {
+        if (!dueDate) return 'No due date';
+        const date = new Date(dueDate);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const getAssessmentStatusClass = (assessment) => {
+        if (!assessment.startDate || !assessment.endDate) return 'status-pending';
+        const now = new Date();
+        const start = new Date(assessment.startDate);
+        const end = new Date(assessment.endDate);
+
+        if (assessment.isCompleted) return 'status-completed';
+        if (now < start) return 'status-upcoming';
+        if (now >= start && now <= end) return 'status-active';
+        return 'status-expired';
+    };
+
+    const getAssessmentStatusText = (assessment) => {
+        if (!assessment.startDate || !assessment.endDate) return 'Pending';
+        const now = new Date();
+        const start = new Date(assessment.startDate);
+        const end = new Date(assessment.endDate);
+
+        if (assessment.isCompleted) return 'Completed';
+        if (now < start) return 'Upcoming';
+        if (now >= start && now <= end) return 'Active';
+        return 'Expired';
+    };
+
+    const calculateProgress = (course) => {
+        // This is a placeholder calculation. You'll need to implement the actual logic
+        // based on your course completion tracking system
+        return {
+            completed: course.completedLessons || 0,
+            total: course.totalLessons || 10,
+            percentage: ((course.completedLessons || 0) / (course.totalLessons || 10)) * 100
+        };
+    };
+
+    if (loading) {
+        return (
+            <>
+                <Navbar />
+                <div className="dashboard-container">
+                    <div className="loading-spinner">Loading student dashboard...</div>
+                </div>
+            </>
+        );
+    }
+
+    if (error) {
+        return (
+            <>
+                <Navbar />
+                <div className="dashboard-container">
+                    <p className="error-message">{error}</p>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
             <Navbar />
-            <div style={dashboardContentStyle}>
-                <h2>Student Dashboard</h2>
-                <p>Welcome to your student portal. Here you can find your courses, assessments, and grades.</p>
+            <div className="dashboard-container">
+                <h2 className="dashboard-header">Student Dashboard</h2>
+                <div className="welcome-message">
+                    Welcome back, {username}!
+                    <div className="user-info">Student ID: {userId}</div>
+                </div>
 
-                {message && <p style={messageStyle}>{message}</p>} {/* Display messages */}
+                {message && <div className="message">{message}</div>}
 
-                {/* Section for Assessments */}
-                <div style={featureSectionStyle}>
-                    <h3>My Assessments</h3>
-                    <p>List of upcoming and past assessments will appear here.</p>
-                    <button style={placeholderButtonStyle} onClick={fetchAssessments}>
-                        View All Assessments
-                    </button>
-                    {/* Display fetched assessments */}
-                    {assessments.length > 0 ? (
-                        <ul style={listStyle}>
-                            {assessments.map((assessment) => (
-                                <li key={assessment.id} style={listItemStyle}>
-                                    Assessment: **{assessment.name}** (ID: {assessment.id}) - Due: {assessment.dueDate || 'N/A'}
-                                </li>
-                            ))}
-                        </ul>
+                {/* Enrolled Courses Section */}
+                <div className="section">
+                    <h3 className="section-header">Your Enrolled Courses</h3>
+                    {enrolledCourses.length === 0 ? (
+                        <p className="empty-state">You haven't enrolled in any courses yet.</p>
                     ) : (
-                        assessments.length === 0 && message.includes('Assessments fetched successfully!') &&
-                        <p>No assessments found.</p>
+                        <div className="list">
+                            {enrolledCourses.map(course => (
+                                <div key={course.id} className="list-item">
+                                    <div className="course-media">
+                                        {course.thumbnailUrl && (
+                                            <img
+                                                alt={course.title}
+                                                src={`http://localhost:5121${course.thumbnailUrl}`}
+                                                className="course-thumbnail"
+                                            />
+                                        )}
+                                    </div>
+                                    <div className="course-content">
+                                        <h4 className="course-title">{course.title}</h4>
+                                        <p className="course-description">{course.description}</p>
+                                        <div className="course-meta">
+                                            <p className="instructor-info">
+                                                Instructor: {course.instructorUsername}
+                                            </p>
+                                            <p className="enrollment-date">
+                                                Enrolled: {formatDueDate(course.enrollmentDate)}
+                                            </p>
+                                        </div>
+                                        <div className="course-progress">
+                                            <div className="progress-bar">
+                                                <div 
+                                                    className="progress-fill" 
+                                                    style={{ width: `${calculateProgress(course).percentage}%` }}
+                                                />
+                                            </div>
+                                            <div className="progress-text">
+                                                <span>Progress</span>
+                                                <span>{calculateProgress(course).completed} / {calculateProgress(course).total} lessons completed</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="action-buttons">
+                                        <button 
+                                            className="button button-primary"
+                                            onClick={() => handleViewCourseClick(course.id)}
+                                        >
+                                            Continue Learning
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
 
-                {/* Section for Courses */}
-                <div style={featureSectionStyle}>
-                    <h3>Course Progress</h3>
-                    <p>Track your progress in various courses.</p>
-                    <button style={placeholderButtonStyle} onClick={fetchCourses}>
-                        Go to Courses
-                    </button>
-                    {/* Display fetched courses */}
-                    {courses.length > 0 ? (
-                        <ul style={listStyle}>
-                            {courses.map((course) => (
-                                <li key={course.id} style={listItemStyle}>
-                                    Course: **{course.name}** (Code: {course.code || 'N/A'})
-                                </li>
-                            ))}
-                        </ul>
+                {/* Available Courses Section */}
+                <div className="section">
+                    <h3 className="section-header">Available Courses</h3>
+                    {availableCourses.length === 0 ? (
+                        <p className="empty-state">No new courses available for enrollment.</p>
                     ) : (
-                        courses.length === 0 && message.includes('Courses fetched successfully!') &&
-                        <p>No courses found.</p>
+                        <div className="list">
+                            {availableCourses.map(course => (
+                                <div key={course.id} className="list-item">
+                                    <div className="course-media">
+                                        {course.thumbnailUrl && (
+                                            <img
+                                                alt={course.title}
+                                                src={`http://localhost:5121${course.thumbnailUrl}`}
+                                                className="course-thumbnail"
+                                            />
+                                        )}
+                                    </div>
+                                    <div className="course-content">
+                                        <h4 className="course-title">{course.title}</h4>
+                                        <p className="course-description">{course.description}</p>
+                                        <div className="course-meta">
+                                            <p className="instructor-info">
+                                                Instructor: {course.instructorUsername}
+                                            </p>
+                                            <p className="course-stats">
+                                                {course.totalLessons || 10} lessons
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="action-buttons">
+                                        <button 
+                                            className="button button-secondary"
+                                            onClick={() => handleEnrollClick(course.id)}
+                                        >
+                                            Enroll Now
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Assessments Section */}
+                <div className="section">
+                    <h3 className="section-header">Your Assessments</h3>
+                    {assessments.length === 0 ? (
+                        <p className="empty-state">No assessments available yet.</p>
+                    ) : (
+                        <div className="list">
+                            {assessments.map((assessment) => (
+                                <div key={assessment.id} className="assessment-item">
+                                    <div className="assessment-info">
+                                        <h4 className="assessment-title">{assessment.title}</h4>
+                                        <p className="assessment-description">{assessment.description}</p>
+                                        <p className="assessment-course">
+                                            Course: {assessment.course?.title || 'N/A'}
+                                        </p>
+                                        <p className="assessment-dates">
+                                            <span>Start: {formatDueDate(assessment.startDate)}</span>
+                                            <br />
+                                            <span>End: {formatDueDate(assessment.endDate)}</span>
+                                        </p>
+                                    </div>
+                                    <div className="assessment-actions">
+                                        <span className={`status-badge ${getAssessmentStatusClass(assessment)}`}>
+                                            {getAssessmentStatusText(assessment)}
+                                        </span>
+                                        <button
+                                            className="button"
+                                            onClick={() => handleViewAssessmentClick(assessment.id)}
+                                            disabled={getAssessmentStatusClass(assessment) !== 'status-active'}
+                                        >
+                                            {assessment.isCompleted ? 'View Results' : 'Take Assessment'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
         </>
     );
 }
-
-// Basic inline styles (keep these, or move to a CSS file)
-const dashboardContentStyle = {
-    padding: '20px',
-    maxWidth: '900px',
-    margin: '0 auto',
-    fontFamily: 'Arial, sans-serif'
-};
-
-const featureSectionStyle = {
-    backgroundColor: '#f9f9f9',
-    border: '1px solid #ddd',
-    borderRadius: '8px',
-    padding: '15px',
-    marginBottom: '15px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-};
-
-const placeholderButtonStyle = {
-    padding: '10px 15px',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    marginTop: '10px',
-    marginRight: '10px', // Added margin for spacing
-    transition: 'background-color 0.3s ease'
-};
-
-const messageStyle = {
-    marginTop: '10px',
-    padding: '10px',
-    backgroundColor: '#e0ffe0',
-    borderLeft: '5px solid #00c853',
-    color: '#333'
-};
-
-const listStyle = {
-    listStyleType: 'none',
-    padding: '0',
-    marginTop: '15px'
-};
-
-const listItemStyle = {
-    backgroundColor: '#f0f8ff',
-    border: '1px solid #e0e0e0',
-    padding: '10px',
-    marginBottom: '5px',
-    borderRadius: '5px'
-};
 
 export default StudentDashboard;

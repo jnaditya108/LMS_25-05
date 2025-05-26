@@ -1,8 +1,5 @@
 // File: EduSyncAPI/Models/CourseDto.cs
-
 using System;
-// No System.Collections.Generic needed as this DTO won't have collections of other entities
-// No System.ComponentModel.DataAnnotations as this is an output DTO, not for validation
 
 namespace EduSyncAPI.Models
 {
@@ -12,8 +9,10 @@ namespace EduSyncAPI.Models
         public string Title { get; set; }
         public string Description { get; set; }
         public int InstructorId { get; set; }
-        // IMPORTANT: DO NOT include 'public ICollection<Assessment> Assessments { get; set; }' here.
-        // This is the key to breaking the cycle.
-        // Also, do not include 'public User Instructor { get; set; }' here.
+        public string InstructorUsername { get; set; } // To display instructor's name
+
+        public string? VideoUrl { get; set; } // NEW
+        public string? ThumbnailUrl { get; set; } // NEW
+        public DateTime EnrollmentDate { get; set; }
     }
 }

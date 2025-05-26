@@ -19,6 +19,8 @@ namespace EduSyncAPI.Models
         // This is how you provide Course details without creating a cycle.
         public CourseDto Course { get; set; }
 
+        public bool IsCompleted { get; set; }
+
         // If you later want to include simplified Question data, you would add:
         // public ICollection<QuestionDto> Questions { get; set; } = new List<QuestionDto>();
         // But for now, let's just focus on fixing the Course cycle.

@@ -1,5 +1,3 @@
-// src/components/EducatorDashboard.js
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import dataApi from '../services/dataApi';
@@ -88,11 +86,35 @@ function EducatorDashboard() {
     const handleDeleteCourse = async (courseId) => {
         if (window.confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
             try {
-                await dataApi.delete(`/courses/${courseId}`);
-                setMessage('Course deleted successfully!');
-                await fetchCourses();
+                console.log(`Attempting to delete course with ID: ${courseId}`);
+                const response = await dataApi.delete(`/courses/${courseId}`);
+                console.log('Delete course response:', response);
+                
+                if (response.status === 200) {
+                    setMessage('Course deleted successfully!');
+                    await fetchCourses();
+                } else {
+                    throw new Error(response.data?.message || 'Failed to delete course');
+                }
             } catch (err) {
                 console.error('Failed to delete course:', err);
+                console.error('Error details:', {
+                    message: err.message,
+                    response: err.response?.data,
+                    status: err.response?.status
+                });
+                
+                if (err.response?.status === 401) {
+                    localStorage.clear();
+                    navigate('/login');
+                    return;
+                }
+                
+                if (err.response?.status === 403) {
+                    setError('You are not authorized to delete this course.');
+                    return;
+                }
+                
                 const errorMessage = err.response?.data?.message || 'Failed to delete course.';
                 setError(errorMessage);
                 setMessage('');
@@ -162,8 +184,12 @@ function EducatorDashboard() {
 
     // --- NEW: Handler for "Manage Questions" button ---
     const handleManageQuestionsClick = (assessmentId) => {
-        // Assuming your route for managing questions is /educator/assessments/:assessmentId/questions
         navigate(`/educator/assessments/${assessmentId}/questions`);
+    };
+
+    // Placeholder handler for "View Students" button (implement as needed)
+    const handleViewStudentsClick = (courseId) => {
+        navigate(`/educator/courses/${courseId}/students`);
     };
 
     // --- Loading and Error Display ---
@@ -214,42 +240,51 @@ function EducatorDashboard() {
                             <ul style={listStyle}>
                                 {courses.map((course) => (
                                     <li key={course.id} style={listItemStyle}>
-                                        <div style={{ flexGrow: 1 }}>
-                                            <strong>{course.title}</strong> - {course.description}
-                                            <div style={actionButtonsContainerStyle}>
-                                                <button style={smallButtonStyle} onClick={() => handleEditCourseClick(course)}>Edit Course</button>
-                                                <button style={{ ...smallButtonStyle, backgroundColor: '#dc3545' }} onClick={() => handleDeleteCourse(course.id)}>Delete Course</button>
+                                        <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', width: '100%' }}>
+                                            {course.thumbnailUrl && (
+                                                <img
+                                                    src={`http://localhost:5121${course.thumbnailUrl}`}
+                                                    alt={`${course.title} Thumbnail`}
+                                                    style={{ width: '80px', height: 'auto', borderRadius: '5px', marginRight: '15px', objectFit: 'cover' }}
+                                                />
+                                            )}
+                                            <div>
+                                                <strong>{course.title}</strong> - {course.description}
                                             </div>
+                                        </div>
+                                        <div style={actionButtonsContainerStyle}>
+                                            <button style={editButtonStyle} onClick={() => handleEditCourseClick(course)}>Edit Course</button>
+                                            <button style={deleteButtonStyle} onClick={() => handleDeleteCourse(course.id)}>Delete Course</button>
+                                            <button style={viewStudentsButtonStyle} onClick={() => handleViewStudentsClick(course.id)}>View Students</button>
+                                        </div>
 
-                                            {/* Nested section for Assessments under this Course */}
-                                            <div style={{ marginLeft: '20px', marginTop: '15px', borderTop: '1px dashed #eee', paddingTop: '10px' }}>
-                                                <h4 style={subSectionHeaderStyle}>Assessments for "{course.title}"</h4>
-                                                <button style={actionButtonStyle} onClick={() => handleCreateAssessmentClick(course.id)}>Create New Assessment for this Course</button>
-                                                {allAssessments.filter(a => a.courseId === course.id).length === 0 ? (
-                                                    <p>No assessments for this course yet.</p>
-                                                ) : (
-                                                    <ul style={listStyle}>
-                                                        {allAssessments
-                                                            .filter(a => a.courseId === course.id)
-                                                            .map((assessment) => (
-                                                                <li key={assessment.id} style={subListItemStyle}>
-                                                                    <span><strong>{assessment.title}</strong> - {assessment.description}</span>
-                                                                    <div style={actionButtonsContainerStyle}>
-                                                                        <button style={smallButtonStyle} onClick={() => handleEditAssessmentClick(assessment)}>Edit Assessment</button>
-                                                                        <button style={{ ...smallButtonStyle, backgroundColor: '#dc3545' }} onClick={() => handleDeleteAssessment(assessment.id)}>Delete Assessment</button>
-                                                                        {/* The fix is here! */}
-                                                                        <button
-                                                                            style={smallButtonStyle}
-                                                                            onClick={() => handleManageQuestionsClick(assessment.id)} // <--- ADD THIS onClick HANDLER
-                                                                        >
-                                                                            Manage Questions
-                                                                        </button>
-                                                                    </div>
-                                                                </li>
-                                                            ))}
-                                                    </ul>
-                                                )}
-                                            </div>
+                                        {/* Nested section for Assessments under this Course */}
+                                        <div style={{ marginLeft: '20px', marginTop: '15px', borderTop: '1px dashed #eee', paddingTop: '10px' }}>
+                                            <h4 style={subSectionHeaderStyle}>Assessments for "{course.title}"</h4>
+                                            <button style={actionButtonStyle} onClick={() => handleCreateAssessmentClick(course.id)}>Create New Assessment for this Course</button>
+                                            {allAssessments.filter(a => a.courseId === course.id).length === 0 ? (
+                                                <p>No assessments for this course yet.</p>
+                                            ) : (
+                                                <ul style={listStyle}>
+                                                    {allAssessments
+                                                        .filter(a => a.courseId === course.id)
+                                                        .map((assessment) => (
+                                                            <li key={assessment.id} style={subListItemStyle}>
+                                                                <span><strong>{assessment.title}</strong> - {assessment.description}</span>
+                                                                <div style={actionButtonsContainerStyle}>
+                                                                    <button style={smallButtonStyle} onClick={() => handleEditAssessmentClick(assessment)}>Edit Assessment</button>
+                                                                    <button style={{ ...smallButtonStyle, backgroundColor: '#dc3545' }} onClick={() => handleDeleteAssessment(assessment.id)}>Delete Assessment</button>
+                                                                    <button
+                                                                        style={smallButtonStyle}
+                                                                        onClick={() => handleManageQuestionsClick(assessment.id)}
+                                                                    >
+                                                                        Manage Questions
+                                                                    </button>
+                                                                </div>
+                                                            </li>
+                                                        ))}
+                                                </ul>
+                                            )}
                                         </div>
                                     </li>
                                 ))}
@@ -257,7 +292,6 @@ function EducatorDashboard() {
                         )}
                     </div>
                 )}
-
 
                 {/* Section for Question Bank (placeholder for now) */}
                 {!showCourseForm && !showAssessmentForm && (
@@ -273,112 +307,120 @@ function EducatorDashboard() {
     );
 }
 
-// Re-using and refining styles (ensure consistency across components)
+// Styles
+
 const dashboardContainerStyle = {
-    padding: '20px',
-    fontFamily: 'Arial, sans-serif',
-    maxWidth: '900px',
-    margin: '20px auto',
-    backgroundColor: '#fff',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    maxWidth: '1200px',
+    margin: '30px auto',
+    padding: '0 15px',
+    fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif',
+    color: '#333',
 };
 
 const dashboardHeaderStyle = {
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: '30px'
+    fontSize: '2.2rem',
+    marginBottom: '20px',
 };
 
 const featureSectionStyle = {
-    backgroundColor: '#f9f9f9',
-    border: '1px solid #ddd',
-    borderRadius: '8px',
-    padding: '15px',
-    marginBottom: '15px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+    marginTop: '40px',
+    paddingBottom: '40px',
+    borderBottom: '2px solid #f0f0f0',
 };
 
 const sectionHeaderStyle = {
-    color: '#555',
-    marginBottom: '15px'
+    fontSize: '1.7rem',
+    color: '#007bff',
+    marginBottom: '15px',
 };
 
 const subSectionHeaderStyle = {
-    color: '#666',
-    marginBottom: '10px',
-    fontSize: '1.1em'
+    fontSize: '1.3rem',
+    marginBottom: '12px',
+    color: '#555',
 };
 
 const listStyle = {
     listStyleType: 'none',
-    padding: 0
+    paddingLeft: 0,
 };
 
 const listItemStyle = {
-    backgroundColor: '#e9f7ff',
-    border: '1px solid #cceeff',
-    borderRadius: '5px',
-    padding: '10px 15px',
-    marginBottom: '10px',
+    background: 'linear-gradient(to right, #FFF5E0, #F0F8FF)', // Soft gradient
+    border: '1px solid #FFDAB9', // Peach border
+    borderRadius: '8px',
+    padding: '15px 20px',
+    marginBottom: '15px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
-    gap: '10px'
+    gap: '12px',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
 };
 
 const subListItemStyle = {
-    backgroundColor: '#f5f5f5',
-    border: '1px solid #e0e0e0',
-    borderRadius: '4px',
-    padding: '8px 12px',
-    marginBottom: '8px',
+    border: '1px solid #ccc',
+    borderRadius: '6px',
+    padding: '10px 15px',
+    marginBottom: '10px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: '100%'
-};
-
-const actionButtonStyle = {
-    padding: '8px 15px',
-    backgroundColor: '#28a745',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    fontSize: '0.9em',
-    marginBottom: '15px',
-    transition: 'background-color 0.3s ease',
-    width: 'fit-content',
-    display: 'inline-block',
-    marginRight: '10px'
+    backgroundColor: '#f9f9f9',
 };
 
 const actionButtonsContainerStyle = {
+    marginTop: '10px',
     display: 'flex',
     gap: '10px',
-    marginTop: '5px'
+    flexWrap: 'wrap',
+};
+
+const actionButtonStyle = {
+    backgroundColor: '#007bff',
+    border: 'none',
+    color: '#fff',
+    padding: '8px 15px',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '0.95rem',
+    transition: 'background-color 0.3s ease',
+};
+
+const editButtonStyle = {
+    ...actionButtonStyle,
+    backgroundColor: '#28a745',
+};
+
+const deleteButtonStyle = {
+    ...actionButtonStyle,
+    backgroundColor: '#dc3545',
+};
+
+const viewStudentsButtonStyle = {
+    ...actionButtonStyle,
+    backgroundColor: '#17a2b8',
 };
 
 const smallButtonStyle = {
-    padding: '5px 10px',
-    backgroundColor: '#007bff',
-    color: 'white',
+    backgroundColor: '#6c757d',
     border: 'none',
+    color: '#fff',
+    padding: '5px 10px',
     borderRadius: '4px',
     cursor: 'pointer',
-    fontSize: '0.8em',
-    transition: 'background-color 0.3s ease'
+    fontSize: '0.85rem',
+    transition: 'background-color 0.3s ease',
 };
 
 const messageStyle = {
-    marginTop: '10px',
-    padding: '10px',
-    backgroundColor: '#e0ffe0',
-    borderLeft: '5px solid #00c853',
-    color: '#333',
-    borderRadius: '5px'
+    backgroundColor: '#d4edda',
+    color: '#155724',
+    border: '1px solid #c3e6cb',
+    borderRadius: '5px',
+    padding: '10px 15px',
+    marginTop: '15px',
+    marginBottom: '15px',
 };
-
 
 export default EducatorDashboard;

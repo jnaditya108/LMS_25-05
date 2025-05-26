@@ -6,11 +6,11 @@
     "\\Edusync_frontend",
     "\\Edusync_frontend\\src",
     "\\Edusync_frontend\\src\\components",
-    "\\Edusync_frontend\\src\\services",
     "\\Models",
     "\\Services",
-    "\\Utils"
+    "\\Utils",
+    "\\wwwroot\\uploads\\videos"
   ],
-  "SelectedNode": "\\Controllers\\AssessmentsController.cs",
+  "SelectedNode": "\\Edusync_frontend\\src\\components\\EducatorDashboard.js",
   "PreviewInSolutionExplorer": false
 }

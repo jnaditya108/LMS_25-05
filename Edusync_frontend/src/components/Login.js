@@ -2,54 +2,54 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../services/api';
+import { login } from '../services/dataApi';
 
 function Login() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setError('');
+        setLoading(true);
+
         try {
-            // First API call: Login (gets the token)
-            const authResponse = await API.post('/auth/login', {
-                username: username,
-                password: password
-            });
-            const { token } = authResponse.data; // Only token is expected from this endpoint
-            localStorage.setItem('token', token);
+            const response = await login({ username, password });
+            console.log('Login response:', response);
 
-            // Second API call: Get user profile details (gets role and username)
-            const userProfileResponse = await API.get('/userprofile/me');
-            // Assuming userProfileResponse.data contains { userId, username, role }
-            const { role, username: fetchedUsername, userId } = userProfileResponse.data;
+            if (response && response.data && response.data.token) {
+                // Store auth data
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('role', response.data.role);
+                localStorage.setItem('username', response.data.username);
+                localStorage.setItem('userId', response.data.userId);
 
-            // Store the role, username, and userId from the /userprofile/me response
-            localStorage.setItem('role', role);
-            localStorage.setItem('username', fetchedUsername); // Store the username for Navbar
-            localStorage.setItem('userId', userId); // Store userId if you need it
-
-            // Now, use the fetched role for navigation
-            if (role === 'Student') {
-                navigate('/student');
-            } else if (role === 'Educator') {
-                navigate('/educator');
+                // Navigate based on role
+                if (response.data.role === 'Student') {
+                    navigate('/student');
+                } else if (response.data.role === 'Educator') {
+                    navigate('/educator');
+                } else {
+                    navigate('/');
+                }
             } else {
-                // This 'else' block will now only be hit if 'role' is genuinely not 'Student' or 'Educator'
-                alert('Login successful, but role not recognized. Redirecting to home.');
-                navigate('/');
+                throw new Error('Invalid response from server');
             }
-
         } catch (err) {
-            alert('Login failed! Please check your username and password.');
-            console.error("Login Error:", err); // Log the full error to the console for debugging
+            console.error('Login Error:', err);
+            setError(err.response?.data?.message || 'Login failed. Please check your credentials and ensure the server is running.');
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <div style={loginContainerStyle}>
-            <h2 style={loginHeaderStyle}>Login</h2>
+            <h2 style={loginHeaderStyle}>Login to EduSync</h2>
+            {error && <div style={errorStyle}>{error}</div>}
             <form onSubmit={handleLogin} style={loginFormStyle}>
                 <input
                     type="text"
@@ -58,7 +58,8 @@ function Login() {
                     onChange={(e) => setUsername(e.target.value)}
                     required
                     style={inputStyle}
-                /><br />
+                    disabled={loading}
+                />
                 <input
                     type="password"
                     placeholder="Password"
@@ -66,56 +67,79 @@ function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     style={inputStyle}
-                /><br />
-                <button type="submit" style={buttonStyle}>Login</button>
+                    disabled={loading}
+                />
+                <button 
+                    type="submit" 
+                    style={buttonStyle}
+                    disabled={loading}
+                >
+                    {loading ? 'Logging in...' : 'Login'}
+                </button>
             </form>
         </div>
     );
 }
 
-// Basic inline styles for Login page
+// Styles
 const loginContainerStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    backgroundColor: '#f4f4f4',
-    fontFamily: 'Arial, sans-serif'
+    maxWidth: '400px',
+    margin: '50px auto',
+    padding: '30px',
+    boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+    borderRadius: '8px',
+    backgroundColor: '#ffffff'
 };
 
 const loginHeaderStyle = {
+    textAlign: 'center',
     color: '#333',
-    marginBottom: '20px'
+    marginBottom: '30px'
 };
 
 const loginFormStyle = {
-    backgroundColor: '#fff',
-    padding: '30px',
-    borderRadius: '8px',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
     display: 'flex',
     flexDirection: 'column',
-    gap: '15px'
+    gap: '20px'
 };
 
 const inputStyle = {
-    padding: '10px',
+    padding: '12px',
     borderRadius: '4px',
     border: '1px solid #ddd',
-    fontSize: '1em',
-    width: '250px' // Fixed width for inputs
+    fontSize: '16px',
+    transition: 'border-color 0.3s ease',
+    ':focus': {
+        borderColor: '#007bff',
+        outline: 'none'
+    }
 };
 
 const buttonStyle = {
-    padding: '10px 20px',
+    padding: '12px 20px',
     backgroundColor: '#007bff',
     color: 'white',
     border: 'none',
-    borderRadius: '5px',
+    borderRadius: '4px',
     cursor: 'pointer',
-    fontSize: '1em',
-    transition: 'background-color 0.3s ease'
+    fontSize: '16px',
+    transition: 'background-color 0.3s ease',
+    ':hover': {
+        backgroundColor: '#0056b3'
+    },
+    ':disabled': {
+        backgroundColor: '#cccccc',
+        cursor: 'not-allowed'
+    }
+};
+
+const errorStyle = {
+    color: '#dc3545',
+    backgroundColor: '#f8d7da',
+    padding: '10px',
+    borderRadius: '4px',
+    marginBottom: '20px',
+    textAlign: 'center'
 };
 
 export default Login;

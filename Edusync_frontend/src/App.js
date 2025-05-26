@@ -1,15 +1,18 @@
 // src/App.js
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom'; // MODIFIED: Added useParams
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import Login from './components/Login';
 import EducatorDashboard from './components/EducatorDashboard';
 import StudentDashboard from './components/StudentDashboard';
 import Home from './components/Home';
 import QuestionManager from './components/QuestionManager';
 import Register from './components/Register';
+import CourseStudentsPage from './components/CourseStudentsPage';
+import CourseDetailsPage from './components/CourseDetailsPage';
+import StudentAssessment from './components/StudentAssessment';
 
-// Enhanced PrivateRoute component (kept as is, it's well-structured)
+// ---------- PRIVATE ROUTE ----------
 function PrivateRoute({ children, allowedRoles }) {
     const isAuthenticated = () => {
         return localStorage.getItem('token') !== null;
@@ -22,39 +25,41 @@ function PrivateRoute({ children, allowedRoles }) {
     const auth = isAuthenticated();
     const userRole = getUserRole();
 
-    if (!auth) {
-        // Not authenticated, redirect to home (where login/register is accessible)
-        return <Navigate to="/" />;
-    }
-
-    if (allowedRoles && !allowedRoles.includes(userRole)) {
-        // Authenticated but role not allowed for this route, redirect to home
+    if (!auth || (allowedRoles && !allowedRoles.includes(userRole))) {
         return <Navigate to="/" />;
     }
 
     return children;
 }
 
-// NEW HELPER COMPONENT: A wrapper to extract assessmentId from URL and pass to QuestionManager
+// ---------- WRAPPERS ----------
 const QuestionManagerWrapper = () => {
-    const { assessmentId } = useParams(); // Extract assessmentId from the URL
-    // Ensure assessmentId is parsed as an integer, as IDs are typically numbers
+    const { assessmentId } = useParams();
     return <QuestionManager assessmentId={parseInt(assessmentId, 10)} />;
 };
 
+const CourseDetailsWrapper = () => {
+    const { courseId } = useParams();
+    return <CourseDetailsPage courseId={parseInt(courseId, 10)} />;
+};
+
+const CourseStudentsWrapper = () => {
+    const { courseId } = useParams();
+    return <CourseStudentsPage courseId={parseInt(courseId, 10)} />;
+};
+
+// ---------- MAIN APP ----------
 function App() {
     return (
         <Router>
-            <div className="App">
+            <div className="App" style={appStyle}>
                 <Routes>
-                    {/* Home page route */}
+                    {/* Public Routes */}
                     <Route path="/" element={<Home />} />
-                    {/* Login page route */}
                     <Route path="/login" element={<Login />} />
-                    {/* Register page route */}
                     <Route path="/register" element={<Register />} />
 
-                    {/* Protected Student Dashboard */}
+                    {/* Protected Student Routes */}
                     <Route
                         path="/student"
                         element={
@@ -63,8 +68,24 @@ function App() {
                             </PrivateRoute>
                         }
                     />
+                    <Route
+                        path="/student/courses/:courseId"
+                        element={
+                            <PrivateRoute allowedRoles={['Student']}>
+                                <CourseDetailsWrapper />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/student/assessments/:assessmentId"
+                        element={
+                            <PrivateRoute allowedRoles={['Student']}>
+                                <StudentAssessment />
+                            </PrivateRoute>
+                        }
+                    />
 
-                    {/* Protected Educator Dashboard */}
+                    {/* Protected Educator Routes */}
                     <Route
                         path="/educator"
                         element={
@@ -73,25 +94,36 @@ function App() {
                             </PrivateRoute>
                         }
                     />
-
-                    {/* NEW PROTECTED ROUTE: For Question Management */}
-                    {/* This route will be like /educator/assessments/4/questions */}
                     <Route
-                        path="/educator/assessments/:assessmentId/questions" // :assessmentId is a URL parameter
+                        path="/educator/assessments/:assessmentId/questions"
                         element={
                             <PrivateRoute allowedRoles={['Educator']}>
-                                {/* Use the wrapper component to get the ID from the URL */}
                                 <QuestionManagerWrapper />
                             </PrivateRoute>
                         }
                     />
+                    <Route
+                        path="/educator/courses/:courseId/students"
+                        element={
+                            <PrivateRoute allowedRoles={['Educator']}>
+                                <CourseStudentsWrapper />
+                            </PrivateRoute>
+                        }
+                    />
 
-                    {/* Optional: Fallback for any other unknown routes */}
+                    {/* Catch-all Fallback */}
                     <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
             </div>
         </Router>
     );
 }
+
+// Global styling
+const appStyle = {
+    minHeight: '100vh',
+    background: 'linear-gradient(to bottom right, #E0FFFF, #FFDAB9)',
+    padding: '20px 0',
+};
 
 export default App;

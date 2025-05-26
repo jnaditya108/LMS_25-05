@@ -65,18 +65,33 @@ namespace EduSyncAPI.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("InstructorId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ThumbnailUrl")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("VideoUrl")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("InstructorId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Courses");
                 });
@@ -89,12 +104,20 @@ namespace EduSyncAPI.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("EnrollmentDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UserId1")
                         .HasColumnType("int");
 
                     b.HasKey("UserId", "CourseId");
 
                     b.HasIndex("CourseId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("Enrollments");
                 });
@@ -233,6 +256,10 @@ namespace EduSyncAPI.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("EduSyncAPI.Models.User", null)
+                        .WithMany("Courses")
+                        .HasForeignKey("UserId");
+
                     b.Navigation("Instructor");
                 });
 
@@ -249,6 +276,10 @@ namespace EduSyncAPI.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.HasOne("EduSyncAPI.Models.User", null)
+                        .WithMany("Enrollments")
+                        .HasForeignKey("UserId1");
 
                     b.Navigation("Course");
 
@@ -317,6 +348,13 @@ namespace EduSyncAPI.Migrations
             modelBuilder.Entity("EduSyncAPI.Models.Question", b =>
                 {
                     b.Navigation("Options");
+                });
+
+            modelBuilder.Entity("EduSyncAPI.Models.User", b =>
+                {
+                    b.Navigation("Courses");
+
+                    b.Navigation("Enrollments");
                 });
 #pragma warning restore 612, 618
         }

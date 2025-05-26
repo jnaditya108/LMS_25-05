@@ -400,5 +400,50 @@ namespace EduSyncAPI.Controllers
                 .ToListAsync();
             return responses;
         }
+
+        // GET: api/Assessments/student/{userId} - Get assessments for a specific student
+        [HttpGet("student/{userId}")]
+        public async Task<ActionResult<IEnumerable<AssessmentDto>>> GetStudentAssessments(int userId)
+        {
+            try
+            {
+                // Get the courses the student is enrolled in
+                var enrolledCourseIds = await _context.Enrollments
+                    .Where(e => e.UserId == userId)
+                    .Select(e => e.CourseId)
+                    .ToListAsync();
+
+                // Get assessments for those courses
+                var assessments = await _context.Assessments
+                    .Include(a => a.Course)
+                    .Include(a => a.StudentAnswers.Where(sa => sa.UserId == userId))
+                    .Where(a => enrolledCourseIds.Contains(a.CourseId))
+                    .ToListAsync();
+
+                var assessmentDtos = assessments.Select(assessment => new AssessmentDto
+                {
+                    Id = assessment.Id,
+                    Title = assessment.Title,
+                    Description = assessment.Description,
+                    StartDate = assessment.StartDate,
+                    EndDate = assessment.EndDate,
+                    CourseId = assessment.CourseId,
+                    Course = assessment.Course != null ? new CourseDto
+                    {
+                        Id = assessment.Course.Id,
+                        Title = assessment.Course.Title,
+                        Description = assessment.Course.Description,
+                        InstructorId = assessment.Course.InstructorId
+                    } : null,
+                    IsCompleted = assessment.StudentAnswers.Any()
+                }).ToList();
+
+                return Ok(assessmentDtos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving student assessments.", error = ex.Message });
+            }
+        }
     }
 }

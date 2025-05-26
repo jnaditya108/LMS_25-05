@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios'; // For making API calls
 import './QuestionManager.css'; // Don't forget to create this CSS file
+import Navbar from './Navbar';
 
 // Base URL for your API
 // IMPORTANT: Replace with your actual API URL and port
@@ -25,10 +26,12 @@ const QuestionManager = ({ assessmentId }) => {
     const [newQuestionText, setNewQuestionText] = useState('');
     const [newQuestionType, setNewQuestionType] = useState('MultipleChoice'); // Default type
     const [newOptions, setNewOptions] = useState([{ text: '', isCorrect: false }]); // Options for new MC question
+    const [assessmentTitle, setAssessmentTitle] = useState('');
 
     // Effect hook to fetch questions whenever the assessmentId changes
     useEffect(() => {
         if (assessmentId) {
+            fetchAssessmentDetails();
             fetchQuestions();
         }
     }, [assessmentId]); // Dependency array: re-run when assessmentId changes
@@ -45,6 +48,15 @@ const QuestionManager = ({ assessmentId }) => {
             setError('Failed to fetch questions. Please try again.'); // Set error message
         } finally {
             setLoading(false); // Reset loading state
+        }
+    };
+
+    const fetchAssessmentDetails = async () => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/Assessments/${assessmentId}`);
+            setAssessmentTitle(response.data.title);
+        } catch (err) {
+            console.error('Error fetching assessment details:', err);
         }
     };
 
@@ -91,19 +103,13 @@ const QuestionManager = ({ assessmentId }) => {
             fetchQuestions(); // Refresh the list of questions
         } catch (err) {
             console.error('Error adding question:', err);
-            setError('Failed to add question. Check console for details.');
-            // Display specific validation errors from backend if available
-            if (err.response && err.response.data && err.response.data.errors) {
-                setError('Validation Errors: ' + JSON.stringify(err.response.data.errors, null, 2));
-            }
+            setError('Failed to add question. Please check your input.');
         }
     };
 
     // Handler for deleting a question
     const handleDeleteQuestion = async (questionId) => {
-        if (window.confirm('Are you sure you want to delete this question and all its options?')) {
-            setLoading(true); // Set loading state
-            setError(null); // Clear previous errors
+        if (window.confirm('Are you sure you want to delete this question?')) {
             try {
                 // API call to delete question
                 await axios.delete(`${API_BASE_URL}/Assessments/${assessmentId}/questions/${questionId}`);
@@ -111,8 +117,6 @@ const QuestionManager = ({ assessmentId }) => {
             } catch (err) {
                 console.error('Error deleting question:', err);
                 setError('Failed to delete question. Please try again.');
-            } finally {
-                setLoading(false); // Reset loading state
             }
         }
     };
@@ -176,10 +180,7 @@ const QuestionManager = ({ assessmentId }) => {
             fetchQuestions(); // Refresh the list
         } catch (err) {
             console.error('Error updating question:', err);
-            setError('Failed to update question. Check console for details.');
-            if (err.response && err.response.data && err.response.data.errors) {
-                setError('Validation Errors: ' + JSON.stringify(err.response.data.errors, null, 2));
-            }
+            setError('Failed to update question. Please check your input.');
         }
     };
 
@@ -224,192 +225,235 @@ const QuestionManager = ({ assessmentId }) => {
 
     // --- Conditional Rendering based on component state ---
     if (!assessmentId) {
-        return <div className="question-manager">Please provide an Assessment ID to manage questions.</div>;
+        return <div className="question-manager">Please provide an Assessment ID.</div>;
     }
 
     if (loading) {
-        return <div className="question-manager">Loading questions...</div>;
+        return (
+            <>
+                <Navbar />
+                <div className="question-manager">
+                    <div className="loading">Loading questions...</div>
+                </div>
+            </>
+        );
     }
 
     // Main render function for the component
     return (
-        <div className="question-manager">
-            <h2>Questions for Assessment ID: {assessmentId}</h2>
+        <>
+            <Navbar />
+            <div className="question-manager">
+                <h2>{assessmentTitle} - Questions</h2>
 
-            {/* Display error messages if any */}
-            {error && <div className="error-message">Error: {error}</div>}
+                {/* Display error messages if any */}
+                {error && <div className="error-message">{error}</div>}
 
-            {/* Button to toggle the Add Question form */}
-            <button onClick={() => {
-                setShowAddForm(!showAddForm);
-                setShowEditForm(false); // Hide edit form if showing
-                setCurrentQuestion(null); // Clear any editing state
-                setNewQuestionText(''); // Reset add form fields
-                setNewQuestionType('MultipleChoice');
-                setNewOptions([{ text: '', isCorrect: false }]);
-            }}>
-                {showAddForm ? 'Cancel Add Question' : 'Add New Question'}
-            </button>
+                {/* Button to toggle the Add Question form */}
+                <button 
+                    className="add-question-btn"
+                    onClick={() => {
+                        setShowAddForm(!showAddForm);
+                        setShowEditForm(false);
+                        setCurrentQuestion(null);
+                        setNewQuestionText('');
+                        setNewQuestionType('MultipleChoice');
+                        setNewOptions([{ text: '', isCorrect: false }]);
+                    }}
+                >
+                    {showAddForm ? '− Cancel' : '+ Add Question'}
+                </button>
 
-            {/* Add Question Form (conditionally rendered) */}
-            {showAddForm && (
-                <div className="form-container">
-                    <h3>Add New Question</h3>
-                    <form onSubmit={handleAddQuestion}>
-                        <div>
-                            <label>Question Text:</label>
-                            <input
-                                type="text"
-                                value={newQuestionText}
-                                onChange={(e) => setNewQuestionText(e.target.value)}
-                                required // HTML5 required validation
-                            />
-                        </div>
-                        <div>
-                            <label>Question Type:</label>
-                            <select value={newQuestionType} onChange={(e) => {
-                                setNewQuestionType(e.target.value);
-                                setNewOptions([{ text: '', isCorrect: false }]); // Reset options when type changes
-                            }}>
-                                <option value="MultipleChoice">Multiple Choice</option>
-                                <option value="TrueFalse">True/False</option>
-                                <option value="ShortAnswer">Short Answer</option>
-                            </select>
-                        </div>
+                {/* Add Question Form (conditionally rendered) */}
+                {showAddForm && (
+                    <div className="form-container">
+                        <h3>Add New Question</h3>
+                        <form onSubmit={handleAddQuestion}>
+                            <div>
+                                <label>Question Text:</label>
+                                <input
+                                    type="text"
+                                    value={newQuestionText}
+                                    onChange={(e) => setNewQuestionText(e.target.value)}
+                                    placeholder="Enter your question here"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label>Question Type:</label>
+                                <select 
+                                    value={newQuestionType} 
+                                    onChange={(e) => {
+                                        setNewQuestionType(e.target.value);
+                                        setNewOptions([{ text: '', isCorrect: false }]);
+                                    }}
+                                >
+                                    <option value="MultipleChoice">Multiple Choice</option>
+                                    <option value="TrueFalse">True/False</option>
+                                    <option value="ShortAnswer">Short Answer</option>
+                                </select>
+                            </div>
 
-                        {/* Options section for Multiple Choice questions */}
-                        {newQuestionType === 'MultipleChoice' && (
-                            <div className="options-section">
-                                <h4>Options:</h4>
-                                {newOptions.map((option, index) => (
-                                    <div key={index} className="option-item">
-                                        <input
-                                            type="text"
-                                            placeholder={`Option ${index + 1} Text`}
-                                            value={option.text}
-                                            onChange={(e) => handleNewOptionChange(index, 'text', e.target.value)}
-                                            required
-                                        />
-                                        <label>
+                            {newQuestionType === 'MultipleChoice' && (
+                                <div className="options-container">
+                                    <label>Options:</label>
+                                    {newOptions.map((option, index) => (
+                                        <div key={index} className="option-item">
+                                            <input
+                                                type="text"
+                                                value={option.text}
+                                                onChange={(e) => handleNewOptionChange(index, 'text', e.target.value)}
+                                                placeholder={`Option ${index + 1}`}
+                                            />
                                             <input
                                                 type="checkbox"
                                                 checked={option.isCorrect}
                                                 onChange={(e) => handleNewOptionChange(index, 'isCorrect', e.target.checked)}
                                             />
-                                            Correct
-                                        </label>
-                                        {/* Allow removing option only if there's more than one */}
-                                        {newOptions.length > 1 && (
-                                            <button type="button" onClick={() => handleRemoveOption(index)}>Remove</button>
-                                        )}
-                                    </div>
-                                ))}
-                                <button type="button" onClick={handleAddOption}>Add Option</button>
+                                            {newOptions.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    className="remove-option-btn"
+                                                    onClick={() => setNewOptions(newOptions.filter((_, i) => i !== index))}
+                                                >
+                                                    ×
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        className="add-option-btn"
+                                        onClick={() => setNewOptions([...newOptions, { text: '', isCorrect: false }])}
+                                    >
+                                        + Add Option
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className="question-actions">
+                                <button type="submit">Save Question</button>
+                                <button type="button" onClick={() => setShowAddForm(false)}>Cancel</button>
                             </div>
-                        )}
-                        <button type="submit">Submit Question</button>
-                    </form>
-                </div>
-            )}
+                        </form>
+                    </div>
+                )}
 
-            {/* Edit Question Form (conditionally rendered) */}
-            {showEditForm && currentQuestion && (
-                <div className="form-container">
-                    <h3>Edit Question (ID: {currentQuestion.id})</h3>
-                    <form onSubmit={handleUpdateQuestion}>
-                        <div>
-                            <label>Question Text:</label>
-                            <input
-                                type="text"
-                                value={currentQuestion.text}
-                                onChange={(e) => setCurrentQuestion(prev => ({ ...prev, text: e.target.value }))}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label>Question Type:</label>
-                            <select
-                                value={currentQuestion.questionType}
-                                onChange={(e) => {
-                                    setCurrentQuestion(prev => ({
-                                        ...prev,
-                                        questionType: e.target.value,
-                                        // Reset options if type changes, or keep if already MC and options exist
-                                        options: e.target.value === 'MultipleChoice' ? (prev.options && prev.options.length > 0 ? prev.options : [{ id: 0, text: '', isCorrect: false, questionId: prev.id }]) : []
-                                    }));
-                                }}
-                            >
-                                <option value="MultipleChoice">Multiple Choice</option>
-                                <option value="TrueFalse">True/False</option>
-                                <option value="ShortAnswer">Short Answer</option>
-                            </select>
-                        </div>
+                {/* Edit Question Form (conditionally rendered) */}
+                {showEditForm && currentQuestion && (
+                    <div className="form-container">
+                        <h3>Edit Question</h3>
+                        <form onSubmit={handleUpdateQuestion}>
+                            <div>
+                                <label>Question Text:</label>
+                                <input
+                                    type="text"
+                                    value={currentQuestion.text}
+                                    onChange={(e) => setCurrentQuestion(prev => ({ ...prev, text: e.target.value }))}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label>Question Type:</label>
+                                <select
+                                    value={currentQuestion.questionType}
+                                    onChange={(e) => {
+                                        setCurrentQuestion(prev => ({
+                                            ...prev,
+                                            questionType: e.target.value,
+                                            options: e.target.value === 'MultipleChoice' ? 
+                                                (prev.options && prev.options.length > 0 ? prev.options : [{ id: 0, text: '', isCorrect: false, questionId: prev.id }]) : 
+                                                []
+                                        }));
+                                    }}
+                                >
+                                    <option value="MultipleChoice">Multiple Choice</option>
+                                    <option value="TrueFalse">True/False</option>
+                                    <option value="ShortAnswer">Short Answer</option>
+                                </select>
+                            </div>
 
-                        {/* Options section for Multiple Choice questions in edit form */}
-                        {currentQuestion.questionType === 'MultipleChoice' && (
-                            <div className="options-section">
-                                <h4>Options:</h4>
-                                {currentQuestion.options && currentQuestion.options.map((option, index) => (
-                                    <div key={option.id || `new-${index}`} className="option-item"> {/* Use option.id for key if exists, else a unique index */}
-                                        <input
-                                            type="text"
-                                            placeholder={`Option ${index + 1} Text`}
-                                            value={option.text}
-                                            onChange={(e) => handleEditOptionChange(index, 'text', e.target.value)}
-                                            required
-                                        />
-                                        <label>
+                            {currentQuestion.questionType === 'MultipleChoice' && (
+                                <div className="options-container">
+                                    <label>Options:</label>
+                                    {currentQuestion.options.map((option, index) => (
+                                        <div key={option.id || index} className="option-item">
+                                            <input
+                                                type="text"
+                                                value={option.text}
+                                                onChange={(e) => handleEditOptionChange(index, 'text', e.target.value)}
+                                                placeholder={`Option ${index + 1}`}
+                                            />
                                             <input
                                                 type="checkbox"
                                                 checked={option.isCorrect}
                                                 onChange={(e) => handleEditOptionChange(index, 'isCorrect', e.target.checked)}
                                             />
-                                            Correct
-                                        </label>
-                                        {/* Allow removing option only if there's more than one */}
-                                        {currentQuestion.options.length > 1 && (
-                                            <button type="button" onClick={() => handleRemoveEditOption(index)}>Remove</button>
-                                        )}
-                                    </div>
-                                ))}
-                                <button type="button" onClick={handleAddEditOption}>Add Option</button>
-                            </div>
-                        )}
-                        <button type="submit">Update Question</button>
-                        {/* Cancel button for edit form */}
-                        <button type="button" onClick={() => { setShowEditForm(false); setCurrentQuestion(null); }}>Cancel</button>
-                    </form>
-                </div>
-            )}
-
-
-            {/* List of current questions */}
-            <h3>Current Questions</h3>
-            {questions.length === 0 ? (
-                <p>No questions found for this assessment. Add some above!</p>
-            ) : (
-                <ul className="questions-list">
-                    {questions.map((question) => (
-                        <li key={question.id} className="question-item">
-                            <p><strong>{question.text}</strong> ({question.questionType})</p>
-                            {question.options && question.options.length > 0 && (
-                                <ul className="options-list">
-                                    {question.options.map((option) => (
-                                        <li key={option.id} className={option.isCorrect ? 'correct-option' : ''}>
-                                            {option.text} {option.isCorrect && '(Correct)'}
-                                        </li>
+                                            {currentQuestion.options.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    className="remove-option-btn"
+                                                    onClick={() => setCurrentQuestion(prev => ({
+                                                        ...prev,
+                                                        options: prev.options.filter((_, i) => i !== index)
+                                                    }))}
+                                                >
+                                                    ×
+                                                </button>
+                                            )}
+                                        </div>
                                     ))}
-                                </ul>
+                                    <button
+                                        type="button"
+                                        className="add-option-btn"
+                                        onClick={() => setCurrentQuestion(prev => ({
+                                            ...prev,
+                                            options: [...prev.options, { id: 0, text: '', isCorrect: false, questionId: prev.id }]
+                                        }))}
+                                    >
+                                        + Add Option
+                                    </button>
+                                </div>
                             )}
+
                             <div className="question-actions">
-                                <button onClick={() => handleEditClick(question)}>Edit</button>
-                                <button onClick={() => handleDeleteQuestion(question.id)}>Delete</button>
+                                <button type="submit">Update Question</button>
+                                <button type="button" onClick={() => { setShowEditForm(false); setCurrentQuestion(null); }}>Cancel</button>
                             </div>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
+                        </form>
+                    </div>
+                )}
+
+                {/* List of current questions */}
+                <h3>Current Questions</h3>
+                {questions.length === 0 ? (
+                    <div className="empty-state">No questions added yet. Click "Add Question" to get started.</div>
+                ) : (
+                    <div className="questions-list">
+                        {questions.map((question) => (
+                            <div key={question.id} className="question-item">
+                                <strong>{question.text}</strong>
+                                <p className="question-type">Type: {question.questionType}</p>
+                                {question.options && question.options.length > 0 && (
+                                    <ul className="options-list">
+                                        {question.options.map((option) => (
+                                            <li key={option.id} className={option.isCorrect ? 'correct-option' : ''}>
+                                                <span className="option-text">{option.text}</span>
+                                                {option.isCorrect && <span className="correct-badge">✓ Correct</span>}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                                <div className="question-actions">
+                                    <button onClick={() => handleEditClick(question)}>Edit</button>
+                                    <button onClick={() => handleDeleteQuestion(question.id)}>Delete</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </>
     );
 };
 

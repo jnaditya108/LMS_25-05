@@ -1,11 +1,54 @@
 {
   "Version": 1,
-  "Hash": "M/jcwp18t7UoXkpYcgPYeo6xkCEocl6kBgGLp2z5Hhk=",
+  "Hash": "2xJkRZtbIyXw+B5EvlLHo0XJShooZNCQYPaNEUJYlVw=",
   "Source": "EduSyncAPI",
   "BasePath": "_content/EduSyncAPI",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
-  "DiscoveryPatterns": [],
-  "Assets": []
+  "DiscoveryPatterns": [
+    {
+      "Name": "EduSyncAPI\\wwwroot",
+      "Source": "EduSyncAPI",
+      "ContentRoot": "C:\\Users\\adity\\EduSyncAPI\\wwwroot\\",
+      "BasePath": "_content/EduSyncAPI",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\Users\\adity\\EduSyncAPI\\wwwroot\\uploads\\thumbnails\\46ae175c-b0f1-4130-89ec-c53cbe856e58_638838600213445790.jpg",
+      "SourceId": "EduSyncAPI",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\adity\\EduSyncAPI\\wwwroot\\",
+      "BasePath": "_content/EduSyncAPI",
+      "RelativePath": "uploads/thumbnails/46ae175c-b0f1-4130-89ec-c53cbe856e58_638838600213445790.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\thumbnails\\46ae175c-b0f1-4130-89ec-c53cbe856e58_638838600213445790.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\adity\\EduSyncAPI\\wwwroot\\uploads\\videos\\0c427806-1e84-493c-bb5a-caca8cb095f7_638838600213245522.mp4",
+      "SourceId": "EduSyncAPI",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\adity\\EduSyncAPI\\wwwroot\\",
+      "BasePath": "_content/EduSyncAPI",
+      "RelativePath": "uploads/videos/0c427806-1e84-493c-bb5a-caca8cb095f7_638838600213245522.mp4",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\videos\\0c427806-1e84-493c-bb5a-caca8cb095f7_638838600213245522.mp4"
+    }
+  ]
 }
