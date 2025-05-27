@@ -3468,11 +3468,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\adity\\EduSyncAPI\\EduSyncAPI.csproj",
+      "projectUniqueName": "D:\\lms latest\\LMS_25-05\\EduSyncAPI.csproj",
       "projectName": "EduSyncAPI",
-      "projectPath": "C:\\Users\\adity\\EduSyncAPI\\EduSyncAPI.csproj",
+      "projectPath": "D:\\lms latest\\LMS_25-05\\EduSyncAPI.csproj",
       "packagesPath": "C:\\Users\\adity\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\adity\\EduSyncAPI\\obj\\",
+      "outputPath": "D:\\lms latest\\LMS_25-05\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

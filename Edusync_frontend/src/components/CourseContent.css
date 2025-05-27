@@ -1,0 +1,207 @@
+.course-content-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.course-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.course-header h1 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.instructor {
+    color: #666;
+    font-size: 1.1em;
+}
+
+.content-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.tab-button {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    background: #f8f9fa;
+    color: #495057;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tab-button i {
+    font-size: 1.1em;
+}
+
+.tab-button.active {
+    background: #007bff;
+    color: white;
+}
+
+.tab-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #e9ecef;
+}
+
+.tab-button.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #e9ecef;
+}
+
+.content-area {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.video-container {
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 Aspect Ratio */
+    position: relative;
+    background: #000;
+}
+
+.course-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.pdf-container {
+    width: 100%;
+    height: 800px;
+    position: relative;
+    background: #f8f9fa;
+}
+
+.pdf-viewer {
+    width: 100%;
+    height: 100%;
+    border: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.pdf-loading,
+.pdf-error,
+.no-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    z-index: 2;
+}
+
+.pdf-loading i {
+    font-size: 3em;
+    color: #007bff;
+    margin-bottom: 1rem;
+}
+
+.pdf-error {
+    color: #dc3545;
+}
+
+.pdf-error i {
+    font-size: 3em;
+    margin-bottom: 1rem;
+}
+
+.retry-button {
+    margin-top: 1rem;
+    padding: 0.5rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    background: #dc3545;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.retry-button:hover {
+    background: #c82333;
+}
+
+.no-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    color: #6c757d;
+    text-align: center;
+    position: static;
+}
+
+.no-content i {
+    font-size: 3em;
+    margin-bottom: 1rem;
+}
+
+.course-details {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.course-details h2 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.course-details p {
+    color: #666;
+    line-height: 1.6;
+}
+
+.loading, .error {
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.error {
+    color: #dc3545;
+}
+
+@media (max-width: 768px) {
+    .course-content-container {
+        margin: 1rem;
+    }
+
+    .content-tabs {
+        flex-direction: column;
+    }
+
+    .pdf-container {
+        height: 500px;
+    }
+} 

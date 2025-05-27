@@ -1,217 +1,343 @@
 // src/components/CourseForm.js
 import React, { useState, useEffect } from 'react';
-import dataApi from '../services/dataApi';
+import { createCourse, updateCourse } from '../services/dataApi';
 
 function CourseForm({ courseToEdit, onCourseSaved, onCancel }) {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [videoFile, setVideoFile] = useState(null); // NEW: For video file
-    const [thumbnailFile, setThumbnailFile] = useState(null); // NEW: For thumbnail file
-    const [existingVideoUrl, setExistingVideoUrl] = useState(''); // NEW: To show existing video/thumbnail
-    const [existingThumbnailUrl, setExistingThumbnailUrl] = useState(''); // NEW: To show existing video/thumbnail
+    const [videoFile, setVideoFile] = useState(null);
+    const [thumbnailFile, setThumbnailFile] = useState(null);
+    const [modulePdfFile, setModulePdfFile] = useState(null);
+    const [existingVideoUrl, setExistingVideoUrl] = useState('');
+    const [existingThumbnailUrl, setExistingThumbnailUrl] = useState('');
+    const [existingModulePdfUrl, setExistingModulePdfUrl] = useState('');
     const [error, setError] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (courseToEdit) {
-            setTitle(courseToEdit.title);
-            setDescription(courseToEdit.description);
-            setExistingVideoUrl(courseToEdit.videoUrl || ''); // Load existing URL
-            setExistingThumbnailUrl(courseToEdit.thumbnailUrl || ''); // Load existing URL
-            // Reset file inputs when editing, as we don't pre-fill file inputs
+            setTitle(courseToEdit.title || '');
+            setDescription(courseToEdit.description || '');
+            setExistingVideoUrl(courseToEdit.videoUrl || '');
+            setExistingThumbnailUrl(courseToEdit.thumbnailUrl || '');
+            setExistingModulePdfUrl(courseToEdit.modulePdfUrl || '');
             setVideoFile(null);
             setThumbnailFile(null);
+            setModulePdfFile(null);
         } else {
-            setTitle('');
-            setDescription('');
-            setVideoFile(null);
-            setThumbnailFile(null);
-            setExistingVideoUrl('');
-            setExistingThumbnailUrl('');
+            resetForm();
         }
     }, [courseToEdit]);
+
+    const resetForm = () => {
+        setTitle('');
+        setDescription('');
+        setVideoFile(null);
+        setThumbnailFile(null);
+        setModulePdfFile(null);
+        setExistingVideoUrl('');
+        setExistingThumbnailUrl('');
+        setExistingModulePdfUrl('');
+        setError(null);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
-
-        // Use FormData for file uploads
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('description', description);
-
-        if (videoFile) {
-            formData.append('videoFile', videoFile);
-        }
-        if (thumbnailFile) {
-            formData.append('thumbnailFile', thumbnailFile);
-        }
+        setIsSubmitting(true);
 
         try {
-            if (courseToEdit) {
-                await dataApi.put(`/courses/${courseToEdit.id}`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' } // Important for FormData
-                });
-                alert('Course updated successfully!');
-            } else {
-                await dataApi.post('/courses', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' } // Important for FormData
-                });
-                alert('Course created successfully!');
+            console.log('Form submitted. Course to edit:', courseToEdit);
+            const formData = new FormData();
+            formData.append('title', title.trim());
+            formData.append('description', description.trim());
+
+            if (videoFile) {
+                console.log('Appending video file:', videoFile.name);
+                formData.append('videoFile', videoFile);
             }
-            onCourseSaved();
+            if (thumbnailFile) {
+                console.log('Appending thumbnail file:', thumbnailFile.name);
+                formData.append('thumbnailFile', thumbnailFile);
+            }
+            if (modulePdfFile) {
+                console.log('Appending PDF file:', modulePdfFile.name);
+                formData.append('modulePdfFile', modulePdfFile);
+            }
+
+            console.log('FormData contents:');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + (pair[1] instanceof File ? pair[1].name : pair[1]));
+            }
+
+            let response;
+            if (courseToEdit) {
+                console.log('Updating course with ID:', courseToEdit.id);
+                response = await updateCourse(courseToEdit.id, formData);
+                console.log('Update response:', response);
+            } else {
+                console.log('Creating new course');
+                response = await createCourse(formData);
+                console.log('Create response:', response);
+            }
+
+            if (response && (response.status === 200 || response.status === 201 || response.status === 204)) {
+                console.log('Course saved successfully');
+                onCourseSaved();
+            } else {
+                console.error('Unexpected response:', response);
+                throw new Error('Failed to save course');
+            }
         } catch (err) {
-            console.error('Failed to save course:', err.response ? err.response.data : err.message);
-            const errorMessage = err.response?.data?.message || 'Failed to save course. Please check your input and backend.';
+            console.error('Failed to save course:', err);
+            const errorMessage = err.response?.data?.message || err.message || 'Failed to save course. Please try again.';
             setError(errorMessage);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    // Basic inline styles for the form (you can integrate the gradient styles from Dashboard)
     const formContainerStyle = {
-        background: 'linear-gradient(to bottom right, #F0FFFF, #FFDAB9)', // Light teal to peach
-        padding: '25px',
-        borderRadius: '10px',
-        boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
-        marginBottom: '20px',
-        marginTop: '20px',
-        maxWidth: '600px',
-        margin: 'auto'
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%)',
+        padding: '30px',
+        borderRadius: '15px',
+        boxShadow: '0 8px 20px rgba(0,0,0,0.1)',
+        maxWidth: '800px',
+        margin: '20px auto',
+        position: 'relative',
+        overflow: 'hidden'
     };
 
     const formHeaderStyle = {
-        textAlign: 'center',
-        color: '#4A4A4A',
+        color: '#2c3e50',
+        fontSize: '1.8em',
         marginBottom: '25px',
-        fontSize: '2em'
+        textAlign: 'center',
+        fontWeight: '600',
+        borderBottom: '2px solid #e1e8ed',
+        paddingBottom: '15px'
     };
 
     const formStyle = {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '15px'
+        display: 'grid',
+        gap: '20px'
     };
 
     const labelStyle = {
+        color: '#34495e',
+        fontSize: '1rem',
+        fontWeight: '500',
+        marginBottom: '5px'
+    };
+
+    const inputContainerStyle = {
         display: 'flex',
         flexDirection: 'column',
-        fontSize: '0.95em',
-        color: '#555',
-        fontWeight: 'bold'
+        gap: '8px'
     };
 
     const inputStyle = {
-        padding: '10px',
-        borderRadius: '5px',
-        border: '1px solid #ddd',
-        fontSize: '1em',
-        marginTop: '5px',
-        backgroundColor: '#fff'
-    };
-
-    const fileInputStyle = {
-        ...inputStyle,
-        padding: '8px 10px' // Adjust padding for file input
+        padding: '12px 15px',
+        borderRadius: '8px',
+        border: '2px solid #e1e8ed',
+        fontSize: '1rem',
+        transition: 'border-color 0.3s ease',
+        backgroundColor: '#fff',
+        '&:focus': {
+            borderColor: '#3498db',
+            outline: 'none'
+        }
     };
 
     const textareaStyle = {
         ...inputStyle,
-        resize: 'vertical',
-        minHeight: '80px'
+        minHeight: '120px',
+        resize: 'vertical'
+    };
+
+    const fileInputContainerStyle = {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        padding: '15px',
+        border: '2px dashed #cbd5e0',
+        borderRadius: '8px',
+        backgroundColor: '#f8fafc',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease'
+    };
+
+    const filePreviewStyle = {
+        marginTop: '10px',
+        padding: '10px',
+        backgroundColor: '#fff',
+        borderRadius: '6px',
+        border: '1px solid #e1e8ed'
     };
 
     const buttonGroupStyle = {
         display: 'flex',
         justifyContent: 'flex-end',
-        gap: '10px',
-        marginTop: '20px'
+        gap: '15px',
+        marginTop: '25px'
+    };
+
+    const buttonBaseStyle = {
+        padding: '12px 25px',
+        borderRadius: '8px',
+        border: 'none',
+        fontSize: '1rem',
+        fontWeight: '500',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
     };
 
     const submitButtonStyle = {
-        padding: '10px 20px',
-        backgroundColor: '#4CAF50', // Green
+        ...buttonBaseStyle,
+        backgroundColor: '#2ecc71',
         color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        fontSize: '1em',
-        transition: 'background-color 0.3s ease',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        '&:hover': {
+            backgroundColor: '#27ae60'
+        },
+        opacity: isSubmitting ? 0.7 : 1,
+        cursor: isSubmitting ? 'not-allowed' : 'pointer'
     };
-    submitButtonStyle[':hover'] = { backgroundColor: '#45a049' };
 
     const cancelButtonStyle = {
-        padding: '10px 20px',
-        backgroundColor: '#6c757d', // Grey
+        ...buttonBaseStyle,
+        backgroundColor: '#e74c3c',
         color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        fontSize: '1em',
-        transition: 'background-color 0.3s ease',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        '&:hover': {
+            backgroundColor: '#c0392b'
+        }
     };
-    cancelButtonStyle[':hover'] = { backgroundColor: '#5a6268' };
-
 
     return (
         <div style={formContainerStyle}>
-            <h3 style={formHeaderStyle}>{courseToEdit ? 'Edit Course' : 'Create New Course'}</h3>
+            <h3 style={formHeaderStyle}>
+                {courseToEdit ? 'Update Course' : 'Create New Course'}
+            </h3>
             <form onSubmit={handleSubmit} style={formStyle}>
-                <label style={labelStyle}>
-                    Title:
+                <div style={inputContainerStyle}>
+                    <label style={labelStyle}>Course Title</label>
                     <input
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         required
                         style={inputStyle}
+                        placeholder="Enter course title"
                     />
-                </label>
-                <label style={labelStyle}>
-                    Description:
+                </div>
+
+                <div style={inputContainerStyle}>
+                    <label style={labelStyle}>Course Description</label>
                     <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         required
-                        rows="4"
                         style={textareaStyle}
-                    ></textarea>
-                </label>
-                <label style={labelStyle}>
-                    Upload Course Video:
-                    <input
-                        type="file"
-                        accept="video/*" // Accept all video formats
-                        onChange={(e) => setVideoFile(e.target.files[0])}
-                        style={fileInputStyle}
+                        placeholder="Enter course description"
                     />
-                    {existingVideoUrl && (
-                        <div>
-                            Existing Video: <a href={`http://localhost:5121${existingVideoUrl}`} target="_blank" rel="noopener noreferrer">View Current Video</a>
-                        </div>
-                    )}
-                </label>
-                <label style={labelStyle}>
-                    Upload Thumbnail Image:
-                    <input
-                        type="file"
-                        accept="image/*" // Accept all image formats
-                        onChange={(e) => setThumbnailFile(e.target.files[0])}
-                        style={fileInputStyle}
-                    />
-                    {existingThumbnailUrl && (
-                        <div>
-                            Existing Thumbnail: <a href={`http://localhost:5121${existingThumbnailUrl}`} target="_blank" rel="noopener noreferrer">View Current Thumbnail</a>
-                        </div>
-                    )}
-                </label>
-                {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
+                </div>
+
+                <div style={inputContainerStyle}>
+                    <label style={labelStyle}>Course Video</label>
+                    <div style={fileInputContainerStyle}>
+                        <input
+                            type="file"
+                            accept="video/*"
+                            onChange={(e) => setVideoFile(e.target.files[0])}
+                            style={{ display: 'none' }}
+                            id="video-upload"
+                        />
+                        <label htmlFor="video-upload" style={{ cursor: 'pointer' }}>
+                            {videoFile ? videoFile.name : 'Click to upload video'}
+                        </label>
+                        {existingVideoUrl && (
+                            <div style={filePreviewStyle}>
+                                Current Video: <a href={`http://localhost:5121${existingVideoUrl}`} target="_blank" rel="noopener noreferrer">View</a>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div style={inputContainerStyle}>
+                    <label style={labelStyle}>Course Thumbnail</label>
+                    <div style={fileInputContainerStyle}>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setThumbnailFile(e.target.files[0])}
+                            style={{ display: 'none' }}
+                            id="thumbnail-upload"
+                        />
+                        <label htmlFor="thumbnail-upload" style={{ cursor: 'pointer' }}>
+                            {thumbnailFile ? thumbnailFile.name : 'Click to upload thumbnail'}
+                        </label>
+                        {existingThumbnailUrl && (
+                            <div style={filePreviewStyle}>
+                                <img 
+                                    src={`http://localhost:5121${existingThumbnailUrl}`} 
+                                    alt="Current thumbnail" 
+                                    style={{ maxWidth: '200px', borderRadius: '4px' }} 
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div style={inputContainerStyle}>
+                    <label style={labelStyle}>Course Module (PDF)</label>
+                    <div style={fileInputContainerStyle}>
+                        <input
+                            type="file"
+                            accept=".pdf"
+                            onChange={(e) => setModulePdfFile(e.target.files[0])}
+                            style={{ display: 'none' }}
+                            id="pdf-upload"
+                        />
+                        <label htmlFor="pdf-upload" style={{ cursor: 'pointer' }}>
+                            {modulePdfFile ? modulePdfFile.name : 'Click to upload PDF'}
+                        </label>
+                        {existingModulePdfUrl && (
+                            <div style={filePreviewStyle}>
+                                Current PDF: <a href={`http://localhost:5121${existingModulePdfUrl}`} target="_blank" rel="noopener noreferrer">View</a>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {error && (
+                    <div style={{ 
+                        color: '#e74c3c', 
+                        padding: '10px', 
+                        borderRadius: '6px', 
+                        backgroundColor: '#fde8e8',
+                        marginTop: '10px'
+                    }}>
+                        {error}
+                    </div>
+                )}
+
                 <div style={buttonGroupStyle}>
-                    <button type="submit" style={submitButtonStyle}>
-                        {courseToEdit ? 'Update Course' : 'Add Course'}
-                    </button>
-                    <button type="button" onClick={onCancel} style={cancelButtonStyle}>
+                    <button 
+                        type="button" 
+                        onClick={onCancel} 
+                        style={cancelButtonStyle}
+                        disabled={isSubmitting}
+                    >
                         Cancel
+                    </button>
+                    <button 
+                        type="submit" 
+                        style={submitButtonStyle}
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? 'Saving...' : courseToEdit ? 'Update Course' : 'Create Course'}
                     </button>
                 </div>
             </form>

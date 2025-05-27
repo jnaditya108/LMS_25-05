@@ -71,6 +71,10 @@ namespace EduSyncAPI.Migrations
                     b.Property<int>("InstructorId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ModulePdfUrl")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
                     b.Property<string>("ThumbnailUrl")
                         .HasMaxLength(1024)
                         .HasColumnType("nvarchar(1024)");

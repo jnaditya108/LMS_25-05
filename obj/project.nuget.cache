@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "sQtj8slXiIVN7MrkDJNht5KnbJP4UQrECfqcYhXF8PUuSDSFFXtrIeNyTYSGGigVgDIk9viOr1qev82iR07kaQ==",
+  "dgSpecHash": "/TXmHfD3CpHwoT3c/Ao79U9NNhViY/KFJWc91gQNpc7/URJqIW2nhvWjv/rJvsExA220Q63CV6tM5PtHeEwKpg==",
   "success": true,
-  "projectFilePath": "C:\\Users\\adity\\EduSyncAPI\\EduSyncAPI.csproj",
+  "projectFilePath": "D:\\lms latest\\LMS_25-05\\EduSyncAPI.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\adity\\.nuget\\packages\\azure.core\\1.35.0\\azure.core.1.35.0.nupkg.sha512",
     "C:\\Users\\adity\\.nuget\\packages\\azure.identity\\1.10.3\\azure.identity.1.10.3.nupkg.sha512",

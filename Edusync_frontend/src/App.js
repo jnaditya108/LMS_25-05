@@ -11,6 +11,7 @@ import Register from './components/Register';
 import CourseStudentsPage from './components/CourseStudentsPage';
 import CourseDetailsPage from './components/CourseDetailsPage';
 import StudentAssessment from './components/StudentAssessment';
+import CourseContent from './components/CourseContent';
 
 // ---------- PRIVATE ROUTE ----------
 function PrivateRoute({ children, allowedRoles }) {
@@ -72,7 +73,7 @@ function App() {
                         path="/student/courses/:courseId"
                         element={
                             <PrivateRoute allowedRoles={['Student']}>
-                                <CourseDetailsWrapper />
+                                <CourseContent />
                             </PrivateRoute>
                         }
                     />

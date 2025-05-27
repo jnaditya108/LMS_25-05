@@ -53,6 +53,10 @@ export const getCourses = () => {
     return API.get('/courses');
 };
 
+export const getCourseById = (courseId) => {
+    return API.get(`/courses/${courseId}`);
+};
+
 export const createCourse = (formData) => {
     return API.post('/courses', formData, {
         headers: {
@@ -87,11 +91,7 @@ export const getAssessments = () => {
     return API.get('/assessments');
 };
 
-export const getStudentAssessments = (userId) => {
-    return API.get(`/assessments/student/${userId}`);
-};
-
-export const getAssessment = (assessmentId) => {
+export const getAssessmentById = (assessmentId) => {
     return API.get(`/assessments/${assessmentId}`);
 };
 
@@ -105,6 +105,53 @@ export const submitAssessment = (assessmentId, answers) => {
 
 export const getAssessmentResult = (assessmentId, userId) => {
     return API.get(`/assessments/${assessmentId}/result/${userId}`);
+};
+
+// --- Question Endpoints ---
+export const getQuestions = (assessmentId) => {
+    return API.get(`/assessments/${assessmentId}/questions`);
+};
+
+export const createQuestion = (assessmentId, questionData) => {
+    return API.post(`/assessments/${assessmentId}/questions`, questionData);
+};
+
+export const updateQuestion = (assessmentId, questionId, questionData) => {
+    return API.put(`/assessments/${assessmentId}/questions/${questionId}`, questionData);
+};
+
+export const deleteQuestion = (assessmentId, questionId) => {
+    return API.delete(`/assessments/${assessmentId}/questions/${questionId}`);
+};
+
+// --- Assessment API Functions ---
+export const createAssessment = (assessmentData) => {
+    return API.post('/assessments', assessmentData);
+};
+
+export const updateAssessment = (assessmentId, assessmentData) => {
+    return API.put(`/assessments/${assessmentId}`, assessmentData);
+};
+
+export const deleteAssessment = (assessmentId) => {
+    return API.delete(`/assessments/${assessmentId}`);
+};
+
+// --- Course Content Functions ---
+export const getCourseContent = (courseId) => {
+    return API.get(`/courses/${courseId}/content`);
+};
+
+export const uploadCourseContent = (courseId, contentData) => {
+    return API.post(`/courses/${courseId}/content`, contentData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+};
+
+export const getStudentAssessments = (userId) => {
+    return API.get(`/assessments/student/${userId}`);
 };
 
 export default API;

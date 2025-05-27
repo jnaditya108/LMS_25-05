@@ -13,6 +13,7 @@ namespace EduSyncAPI.Models
 
         public string? VideoUrl { get; set; } // NEW
         public string? ThumbnailUrl { get; set; } // NEW
+        public string? ModulePdfUrl { get; set; } // NEW: PDF Module URL
         public DateTime EnrollmentDate { get; set; }
     }
 }

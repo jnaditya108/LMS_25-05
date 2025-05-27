@@ -31,11 +31,14 @@ namespace EduSyncAPI.Controllers
         {
             if (file == null || file.Length == 0)
             {
+                Console.WriteLine($"No {folderName} file provided or file is empty");
                 return null;
             }
 
             try
             {
+                Console.WriteLine($"Processing {folderName} file: {file.FileName}, Size: {file.Length} bytes");
+
                 // Define allowed extensions and max size
                 var allowedExtensions = new List<string>();
                 long maxSize = 50 * 1024 * 1024; // Default 50 MB
@@ -50,39 +53,55 @@ namespace EduSyncAPI.Controllers
                     allowedExtensions = new List<string> { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
                     maxSize = 10 * 1024 * 1024; // 10 MB for thumbnails
                 }
+                else if (folderName == "pdfs")
+                {
+                    allowedExtensions = new List<string> { ".pdf" };
+                    maxSize = 100 * 1024 * 1024; // 100 MB for PDFs
+                }
 
                 var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                Console.WriteLine($"File extension: {fileExtension}");
+                Console.WriteLine($"Allowed extensions: {string.Join(", ", allowedExtensions)}");
 
                 if (!allowedExtensions.Contains(fileExtension))
                 {
-                    throw new ArgumentException($"File type '{fileExtension}' is not allowed for {folderName}. Allowed types: {string.Join(", ", allowedExtensions)}");
+                    var errorMessage = $"File type '{fileExtension}' is not allowed for {folderName}. Allowed types: {string.Join(", ", allowedExtensions)}";
+                    Console.WriteLine(errorMessage);
+                    throw new ArgumentException(errorMessage);
                 }
 
                 if (file.Length > maxSize)
                 {
-                    throw new ArgumentException($"File size exceeds the limit for {folderName}. Max size: {maxSize / (1024 * 1024)} MB");
+                    var errorMessage = $"File size exceeds the limit for {folderName}. Max size: {maxSize / (1024 * 1024)} MB";
+                    Console.WriteLine(errorMessage);
+                    throw new ArgumentException(errorMessage);
                 }
 
                 var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", folderName);
                 if (!Directory.Exists(uploadsFolder))
                 {
+                    Console.WriteLine($"Creating directory: {uploadsFolder}");
                     Directory.CreateDirectory(uploadsFolder);
                 }
 
                 var uniqueFileName = $"{Guid.NewGuid()}_{DateTime.Now.Ticks}{fileExtension}";
                 var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                Console.WriteLine($"Saving file to: {filePath}");
 
                 using (var fileStream = new FileStream(filePath, FileMode.Create))
                 {
                     await file.CopyToAsync(fileStream);
                 }
 
-                // Return the relative URL for accessing the file
-                return $"/uploads/{folderName}/{uniqueFileName}";
+                var relativePath = $"/uploads/{folderName}/{uniqueFileName}";
+                Console.WriteLine($"File saved successfully. Relative path: {relativePath}");
+                return relativePath;
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error saving {folderName} file: {ex.Message}");
+                Console.WriteLine($"Error saving {folderName} file: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
             }
         }
 
@@ -120,7 +139,8 @@ namespace EduSyncAPI.Controllers
                 InstructorId = c.InstructorId,
                 InstructorUsername = c.Instructor?.Username ?? "N/A",
                 VideoUrl = c.VideoUrl,
-                ThumbnailUrl = c.ThumbnailUrl
+                ThumbnailUrl = c.ThumbnailUrl,
+                ModulePdfUrl = c.ModulePdfUrl
             }).ToList();
 
             return Ok(courseDtos);
@@ -147,7 +167,8 @@ namespace EduSyncAPI.Controllers
                 InstructorId = course.InstructorId,
                 InstructorUsername = course.Instructor?.Username ?? "N/A",
                 VideoUrl = course.VideoUrl,
-                ThumbnailUrl = course.ThumbnailUrl
+                ThumbnailUrl = course.ThumbnailUrl,
+                ModulePdfUrl = course.ModulePdfUrl
             };
 
             return Ok(courseDto);
@@ -155,10 +176,22 @@ namespace EduSyncAPI.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Educator")]
-        public async Task<ActionResult<CourseDto>> CreateCourse([FromForm] string title, [FromForm] string description, [FromForm] IFormFile? videoFile, [FromForm] IFormFile? thumbnailFile)
+        public async Task<ActionResult<CourseDto>> CreateCourse(
+            [FromForm] string title, 
+            [FromForm] string description, 
+            [FromForm] IFormFile? videoFile, 
+            [FromForm] IFormFile? thumbnailFile,
+            [FromForm] IFormFile? modulePdfFile)
         {
             try
             {
+                Console.WriteLine("CreateCourse called");
+                Console.WriteLine($"Title: {title}");
+                Console.WriteLine($"Description: {description}");
+                Console.WriteLine($"Video file: {videoFile?.FileName ?? "none"}");
+                Console.WriteLine($"Thumbnail file: {thumbnailFile?.FileName ?? "none"}");
+                Console.WriteLine($"PDF file: {modulePdfFile?.FileName ?? "none"}");
+
                 var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "userId");
                 if (userIdClaim == null)
                 {
@@ -179,14 +212,19 @@ namespace EduSyncAPI.Controllers
 
                 string? videoUrl = null;
                 string? thumbnailUrl = null;
+                string? modulePdfUrl = null;
 
                 try
                 {
                     videoUrl = await SaveFile(videoFile, "videos");
                     thumbnailUrl = await SaveFile(thumbnailFile, "thumbnails");
+                    modulePdfUrl = await SaveFile(modulePdfFile, "pdfs");
+
+                    Console.WriteLine($"Files saved - Video: {videoUrl}, Thumbnail: {thumbnailUrl}, PDF: {modulePdfUrl}");
                 }
                 catch (ArgumentException ex)
                 {
+                    Console.WriteLine($"File validation error: {ex.Message}");
                     return BadRequest(new { message = ex.Message });
                 }
 
@@ -196,7 +234,8 @@ namespace EduSyncAPI.Controllers
                     Description = description,
                     InstructorId = instructorId,
                     VideoUrl = videoUrl,
-                    ThumbnailUrl = thumbnailUrl
+                    ThumbnailUrl = thumbnailUrl,
+                    ModulePdfUrl = modulePdfUrl
                 };
 
                 _context.Courses.Add(course);
@@ -212,21 +251,30 @@ namespace EduSyncAPI.Controllers
                     InstructorId = course.InstructorId,
                     InstructorUsername = course.Instructor?.Username ?? "N/A",
                     VideoUrl = course.VideoUrl,
-                    ThumbnailUrl = course.ThumbnailUrl
+                    ThumbnailUrl = course.ThumbnailUrl,
+                    ModulePdfUrl = course.ModulePdfUrl
                 };
 
+                Console.WriteLine($"Course created successfully with ID: {course.Id}");
                 return CreatedAtAction(nameof(GetCourse), new { id = course.Id }, courseDto);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error creating course: {ex}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return StatusCode(500, new { message = "An error occurred while creating the course.", error = ex.Message });
             }
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Educator")]
-        public async Task<IActionResult> UpdateCourse(int id, [FromForm] string title, [FromForm] string description, [FromForm] IFormFile? videoFile, [FromForm] IFormFile? thumbnailFile)
+        public async Task<IActionResult> UpdateCourse(
+            int id, 
+            [FromForm] string title, 
+            [FromForm] string description, 
+            [FromForm] IFormFile? videoFile, 
+            [FromForm] IFormFile? thumbnailFile,
+            [FromForm] IFormFile? modulePdfFile)
         {
             try
             {
@@ -252,35 +300,53 @@ namespace EduSyncAPI.Controllers
                     return BadRequest(new { message = "Title and Description cannot be empty." });
                 }
 
-                course.Title = title;
-                course.Description = description;
-
                 try
                 {
-                    if (videoFile != null && videoFile.Length > 0)
+                    if (videoFile != null)
                     {
                         DeleteFile(course.VideoUrl);
                         course.VideoUrl = await SaveFile(videoFile, "videos");
                     }
 
-                    if (thumbnailFile != null && thumbnailFile.Length > 0)
+                    if (thumbnailFile != null)
                     {
                         DeleteFile(course.ThumbnailUrl);
                         course.ThumbnailUrl = await SaveFile(thumbnailFile, "thumbnails");
                     }
+
+                    if (modulePdfFile != null)
+                    {
+                        DeleteFile(course.ModulePdfUrl);
+                        course.ModulePdfUrl = await SaveFile(modulePdfFile, "pdfs");
+                    }
+
+                    course.Title = title;
+                    course.Description = description;
+
+                    await _context.SaveChangesAsync();
+
+                    // Return the updated course data
+                    var updatedCourseDto = new CourseDto
+                    {
+                        Id = course.Id,
+                        Title = course.Title,
+                        Description = course.Description,
+                        InstructorId = course.InstructorId,
+                        VideoUrl = course.VideoUrl,
+                        ThumbnailUrl = course.ThumbnailUrl,
+                        ModulePdfUrl = course.ModulePdfUrl
+                    };
+
+                    return Ok(updatedCourseDto);
                 }
                 catch (ArgumentException ex)
                 {
                     return BadRequest(new { message = ex.Message });
                 }
-
-                _context.Entry(course).State = EntityState.Modified;
-                await _context.SaveChangesAsync();
-
-                return NoContent();
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Error updating course: {ex}");
                 return StatusCode(500, new { message = "An error occurred while updating the course.", error = ex.Message });
             }
         }
@@ -325,6 +391,10 @@ namespace EduSyncAPI.Controllers
                 if (!string.IsNullOrEmpty(course.ThumbnailUrl))
                 {
                     DeleteFile(course.ThumbnailUrl);
+                }
+                if (!string.IsNullOrEmpty(course.ModulePdfUrl))
+                {
+                    DeleteFile(course.ModulePdfUrl);
                 }
 
                 // Remove all enrollments

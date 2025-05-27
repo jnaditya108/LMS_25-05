@@ -32,6 +32,10 @@ namespace EduSyncAPI.Models
         [MaxLength(1024, ErrorMessage = "Thumbnail URL cannot exceed 1024 characters.")]
         public string? ThumbnailUrl { get; set; }
 
+        // NEW: PDF Module URL (nullable)
+        [MaxLength(1024, ErrorMessage = "PDF URL cannot exceed 1024 characters.")]
+        public string? ModulePdfUrl { get; set; }
+
         // Navigation property for assessments in this course
         public ICollection<Assessment> Assessments { get; set; } = new List<Assessment>();
 

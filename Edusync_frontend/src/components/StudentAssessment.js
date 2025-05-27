@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
-import { getAssessment, getAssessmentQuestions, submitAssessment } from '../services/dataApi';
+import { getAssessmentById, getAssessmentQuestions, submitAssessment } from '../services/dataApi';
 import './StudentAssessment.css';
 
 function StudentAssessment() {
@@ -22,7 +22,7 @@ function StudentAssessment() {
             setError(null);
             try {
                 // Fetch assessment details
-                const assessmentResponse = await getAssessment(assessmentId);
+                const assessmentResponse = await getAssessmentById(assessmentId);
                 setAssessment(assessmentResponse.data);
 
                 // Fetch questions
@@ -84,18 +84,15 @@ function StudentAssessment() {
 
             if (unansweredQuestions.length > 0) {
                 setError('Please answer all questions before submitting.');
+                setSubmitting(false);
                 return;
             }
 
-            // Format answers for submission
-            const formattedAnswers = Object.entries(answers).map(([questionId, answer]) => ({
-                questionId: parseInt(questionId),
-                answer: Array.isArray(answer) ? answer.join(',') : answer,
-                userId: parseInt(userId)
-            }));
-
-            await submitAssessment(assessmentId, formattedAnswers);
-            navigate(`/student/assessments/${assessmentId}/result`);
+            await submitAssessment(assessmentId, {
+                userId: userId,
+                answers: answers
+            });
+            navigate('/student');
         } catch (err) {
             console.error('Error submitting assessment:', err);
             const errorMessage = err.response?.data?.message || 'Failed to submit assessment. Please try again.';
@@ -143,7 +140,7 @@ function StudentAssessment() {
                             <h3>Question {index + 1}</h3>
                             <p className="question-text">{question.text}</p>
 
-                            {question.questionType === 'MultipleChoice' && (
+                            {question.questionType === 'MultipleChoice' && question.options && (
                                 <div className="options-container">
                                     {question.options.map(option => (
                                         <label key={option.id} className="option-label">
@@ -152,10 +149,16 @@ function StudentAssessment() {
                                                 checked={answers[question.id]?.includes(option.id.toString())}
                                                 onChange={(e) => {
                                                     const currentAnswers = answers[question.id] || [];
-                                                    const newAnswers = e.target.checked
-                                                        ? [...currentAnswers, option.id.toString()]
-                                                        : currentAnswers.filter(id => id !== option.id.toString());
-                                                    handleAnswerChange(question.id, newAnswers, 'MultipleChoice');
+                                                    const optionId = option.id.toString();
+                                                    if (e.target.checked) {
+                                                        handleAnswerChange(question.id, [...currentAnswers, optionId], 'MultipleChoice');
+                                                    } else {
+                                                        handleAnswerChange(
+                                                            question.id,
+                                                            currentAnswers.filter(id => id !== optionId),
+                                                            'MultipleChoice'
+                                                        );
+                                                    }
                                                 }}
                                             />
                                             {option.text}
@@ -199,7 +202,7 @@ function StudentAssessment() {
                         </div>
                     ))}
 
-                    <div className="assessment-actions">
+                    <div className="button-container">
                         <button
                             type="button"
                             onClick={() => navigate('/student')}

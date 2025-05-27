@@ -320,6 +320,41 @@
     margin: 20px 0;
 }
 
+.course-materials {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+.course-materials h5 {
+    margin: 0 0 8px 0;
+    color: #495057;
+    font-size: 0.95em;
+}
+
+.material-link {
+    display: inline-flex;
+    align-items: center;
+    color: #007bff;
+    text-decoration: none;
+    font-size: 0.9em;
+    padding: 5px 10px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.material-link:hover {
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+}
+
+.material-link i {
+    margin-right: 8px;
+}
+
 @media (max-width: 768px) {
     .dashboard-container {
         margin: 15px;

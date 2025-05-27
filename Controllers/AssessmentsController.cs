@@ -372,15 +372,40 @@ namespace EduSyncAPI.Controllers
             return NoContent();
         }
 
-        [HttpPost("submit")]
-        public async Task<IActionResult> SubmitAnswers([FromBody] List<StudentAnswer> answers)
+        [HttpPost("{assessmentId}/submit")]
+        public async Task<IActionResult> SubmitAnswers(int assessmentId, [FromBody] List<StudentAnswer> answers)
         {
-            foreach (var answer in answers)
+            try
             {
-                _context.StudentAnswers.Add(answer);
+                // Validate assessment exists
+                var assessment = await _context.Assessments.FindAsync(assessmentId);
+                if (assessment == null)
+                {
+                    return NotFound($"Assessment with ID {assessmentId} not found.");
+                }
+
+                // Get current user ID from claims
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "userId");
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    return Unauthorized("Invalid user ID. Please log in again.");
+                }
+
+                // Add user ID and timestamp to each answer
+                foreach (var answer in answers)
+                {
+                    answer.UserId = userId;
+                    answer.AnsweredOn = DateTime.UtcNow;
+                    _context.StudentAnswers.Add(answer);
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Assessment submitted successfully" });
             }
-            await _context.SaveChangesAsync();
-            return Ok("Answers submitted");
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while submitting the assessment.", error = ex.Message });
+            }
         }
 
         [HttpGet("responses/{assessmentId}")]

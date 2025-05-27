@@ -22,22 +22,17 @@ function StudentDashboard() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                // Fetch enrolled courses for the student
                 const enrolledResponse = await getEnrolledCourses(userId);
-                setEnrolledCourses(enrolledResponse.data || []);
+                setEnrolledCourses(enrolledResponse.data);
 
-                // Fetch all available courses
-                const allCoursesResponse = await getCourses();
-                const allCourses = allCoursesResponse.data || [];
-                
-                // Filter out enrolled courses from available courses
-                const enrolledIds = enrolledResponse.data.map(course => course.id);
-                const available = allCourses.filter(course => !enrolledIds.includes(course.id));
-                setAvailableCourses(available);
+                const coursesResponse = await getCourses();
+                const availableCourses = coursesResponse.data.filter(course => 
+                    !enrolledResponse.data.some(enrolled => enrolled.id === course.id)
+                );
+                setAvailableCourses(availableCourses);
 
-                // Fetch assessments for the enrolled courses
                 const assessmentsResponse = await getStudentAssessments(userId);
-                setAssessments(assessmentsResponse.data || []);
+                setAssessments(assessmentsResponse.data);
             } catch (err) {
                 console.error('Error fetching dashboard data:', err);
                 const errorMessage = err.response?.data?.message || 'Failed to load dashboard data. Please try again.';
@@ -59,16 +54,21 @@ function StudentDashboard() {
 
     const handleEnrollClick = async (courseId) => {
         try {
-            await enrollInCourse({ userId, courseId });
-            // Refresh the courses lists
-            const enrolledResponse = await getEnrolledCourses(userId);
-            setEnrolledCourses(enrolledResponse.data || []);
+            await enrollInCourse({
+                userId: parseInt(userId),
+                courseId: courseId,
+                enrollmentDate: new Date().toISOString()
+            });
+            const response = await getEnrolledCourses(userId);
+            setEnrolledCourses(response.data);
             setAvailableCourses(prev => prev.filter(course => course.id !== courseId));
             setMessage('Successfully enrolled in the course!');
+            setError(null); // Clear any previous errors
         } catch (err) {
             console.error('Error enrolling in course:', err);
             const errorMessage = err.response?.data?.message || 'Failed to enroll in the course. Please try again.';
             setError(errorMessage);
+            setMessage(''); // Clear any success message
         }
     };
 
@@ -197,6 +197,19 @@ function StudentDashboard() {
                                                 <span>{calculateProgress(course).completed} / {calculateProgress(course).total} lessons completed</span>
                                             </div>
                                         </div>
+                                        {course.modulePdfUrl && (
+                                            <div className="course-materials">
+                                                <h5>Course Materials:</h5>
+                                                <a 
+                                                    href={`http://localhost:5121${course.modulePdfUrl}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="material-link"
+                                                >
+                                                    <i className="fas fa-file-pdf"></i> View Course Module PDF
+                                                </a>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="action-buttons">
                                         <button 
